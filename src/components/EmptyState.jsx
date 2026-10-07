@@ -11,26 +11,26 @@ export function EmptyState({
 }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="flex flex-col items-center justify-center text-center p-8 rounded-2xl glass-card my-4"
+      transition={{ duration: 0.2 }}
+      className="flex flex-col items-center justify-center text-center p-8 sm:p-10 rounded-3xl glass-card my-3"
     >
-      <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4 shadow-glass-subtle">
-        <Icon className="w-7 h-7" />
+      <div className="w-12 h-12 rounded-2xl accent-themed-pill-active flex items-center justify-center mb-3.5 shadow-sm">
+        <Icon className="w-6 h-6 stroke-[2]" />
       </div>
-      <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-100 mb-1">
+      <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 mb-1">
         {title}
       </h3>
-      <p className="text-sm text-zinc-500 dark:text-zinc-400 max-w-xs mb-5">
+      <p className="text-xs text-zinc-400 dark:text-zinc-500 max-w-sm mb-5 leading-relaxed">
         {description}
       </p>
       {actionText && onAction && (
         <motion.button
-          whileHover={{ scale: 1.04 }}
+          whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.96 }}
           onClick={onAction}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 transition-all"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold accent-themed-btn shadow-lg transition-all cursor-pointer"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" />
           <span>{actionText}</span>

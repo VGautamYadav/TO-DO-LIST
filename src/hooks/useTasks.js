@@ -1,18 +1,121 @@
+import { useState, useEffect } from 'react';
 import { useLocalStorage } from './useLocalStorage';
 import { STORAGE_KEYS } from '../utils/storage';
 import { INITIAL_TASKS } from '../data/initialData';
 import { DEFAULT_CATEGORIES } from '../data/categories';
 import { getNextRecurringDate, toISODateString } from '../utils/dateUtils';
 import confetti from 'canvas-confetti';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../services/firebase';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 
 export function useTasks() {
-  const [tasks, setTasks] = useLocalStorage(STORAGE_KEYS.TASKS, INITIAL_TASKS);
-  const [categories, setCategories] = useLocalStorage(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-  const [customTags, setCustomTags] = useLocalStorage(STORAGE_KEYS.CUSTOM_TAGS, [
+  const { currentUser } = useAuth();
+
+  // Local state
+  const [localTasks, setLocalTasks] = useLocalStorage(STORAGE_KEYS.TASKS, INITIAL_TASKS);
+  const [localCategories, setLocalCategories] = useLocalStorage(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+  const [localCustomTags, setLocalCustomTags] = useLocalStorage(STORAGE_KEYS.CUSTOM_TAGS, [
     'college', 'portfolio', 'coding', 'health', 'fitness', 'finance', 'shopping', 'urgent', 'exam'
   ]);
 
-  const addTask = (taskData) => {
+  // Firestore state
+  const [firestoreTasks, setFirestoreTasks] = useState([]);
+  const [firestoreCategories, setFirestoreCategories] = useState(null);
+  const [firestoreCustomTags, setFirestoreCustomTags] = useState(null);
+
+  const isAuth = Boolean(currentUser && !currentUser.isDemoAccount && db);
+
+  // Computed state
+  const tasks = isAuth ? firestoreTasks : localTasks;
+  const categories = isAuth ? (firestoreCategories || localCategories) : localCategories;
+  const customTags = isAuth ? (firestoreCustomTags || localCustomTags) : localCustomTags;
+
+  // Listeners
+  useEffect(() => {
+    if (!isAuth) {
+      setFirestoreTasks([]);
+      setFirestoreCategories(null);
+      setFirestoreCustomTags(null);
+      return;
+    }
+
+    // 1. Tasks Listener
+    const unsubscribeTasks = onSnapshot(collection(db, `users/${currentUser.uid}/tasks`), (snapshot) => {
+      const fetchedTasks = [];
+      snapshot.forEach((docSnap) => {
+        fetchedTasks.push({ id: docSnap.id, ...docSnap.data() });
+      });
+      // Sort by createdAt descending
+      fetchedTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      setFirestoreTasks(fetchedTasks);
+    }, (error) => console.error("Firestore tasks listener error:", error));
+
+    // 2. User Document Listener (for categories and tags)
+    const unsubscribeUser = onSnapshot(doc(db, `users/${currentUser.uid}`), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.categories) setFirestoreCategories(data.categories);
+        if (data.customTags) setFirestoreCustomTags(data.customTags);
+      }
+    });
+
+    return () => {
+      unsubscribeTasks();
+      unsubscribeUser();
+    };
+  }, [currentUser, isAuth]);
+
+  // Fallback direct setter (mainly used by Settings import)
+  const setTasks = async (updater) => {
+    if (!isAuth) {
+      setLocalTasks(updater);
+      return;
+    }
+    const newTasks = typeof updater === 'function' ? updater(tasks) : updater;
+
+    // Batch write to replace all tasks
+    try {
+      const batch = writeBatch(db);
+      // Delete existing
+      firestoreTasks.forEach(t => {
+        batch.delete(doc(db, `users/${currentUser.uid}/tasks/${t.id}`));
+      });
+      // Add new
+      newTasks.forEach(t => {
+        batch.set(doc(db, `users/${currentUser.uid}/tasks/${t.id}`), t);
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error("Error setting tasks batch:", err);
+    }
+  };
+
+  const updateCustomTags = async (newTagsArray) => {
+    if (!isAuth) {
+      setLocalCustomTags(newTagsArray);
+      return;
+    }
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}`), { customTags: newTagsArray }, { merge: true });
+    } catch (err) {
+      console.error("Error updating custom tags:", err);
+    }
+  };
+
+  const updateCategories = async (newCatsArray) => {
+    if (!isAuth) {
+      setLocalCategories(newCatsArray);
+      return;
+    }
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}`), { categories: newCatsArray }, { merge: true });
+    } catch (err) {
+      console.error("Error updating categories:", err);
+    }
+  };
+
+  const addTask = async (taskData) => {
     const todayStr = toISODateString(new Date());
     const id = `task-${Date.now()}`;
     const formattedSubtasks = (taskData.subtasks || []).map((s, idx) => ({
@@ -38,240 +141,319 @@ export function useTasks() {
       subtasks: formattedSubtasks,
       notes: taskData.notes?.trim() || '',
       createdAt: new Date().toISOString(),
-      history: [
-        {
-          action: 'created',
-          timestamp: new Date().toISOString(),
-          text: 'Task created',
-        },
-      ],
+      history: [{ action: 'created', timestamp: new Date().toISOString(), text: 'Task created' }],
     };
 
-    // Save any newly entered tags to available custom tags
     if (Array.isArray(newTask.tags) && newTask.tags.length > 0) {
-      setCustomTags((prev) => Array.from(new Set([...prev, ...newTask.tags])));
+      const mergedTags = Array.from(new Set([...customTags, ...newTask.tags]));
+      updateCustomTags(mergedTags);
     }
 
-    setTasks((prev) => [newTask, ...prev]);
-    return newTask;
+    if (!isAuth) {
+      setLocalTasks((prev) => [newTask, ...prev]);
+      return newTask;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${newTask.id}`), newTask);
+      return newTask;
+    } catch (err) {
+      console.error("Error adding task:", err);
+    }
   };
 
-  const updateTask = (taskId, updates) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
+  const updateTask = async (taskId, updates) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
 
-        const newHistory = [
-          ...(t.history || []),
-          {
-            action: 'edited',
-            timestamp: new Date().toISOString(),
-            text: 'Updated task details',
-          },
-        ];
+    const newHistory = [
+      ...(target.history || []),
+      { action: 'edited', timestamp: new Date().toISOString(), text: 'Updated task details' },
+    ];
 
-        const updated = {
-          ...t,
-          ...updates,
-          history: newHistory,
-        };
+    const updated = { ...target, ...updates, history: newHistory };
 
-        // If tags were modified, update custom tags registry
-        if (Array.isArray(updated.tags) && updated.tags.length > 0) {
-          setCustomTags((tags) => Array.from(new Set([...tags, ...updated.tags])));
-        }
+    if (Array.isArray(updated.tags) && updated.tags.length > 0) {
+      const mergedTags = Array.from(new Set([...customTags, ...updated.tags]));
+      updateCustomTags(mergedTags);
+    }
 
-        return updated;
-      })
-    );
+    if (!isAuth) {
+      setLocalTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), updated, { merge: true });
+    } catch (err) {
+      console.error("Error updating task:", err);
+    }
   };
 
-  const deleteTask = (taskId) => {
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+  const deleteTask = async (taskId) => {
+    if (!isAuth) {
+      setLocalTasks((prev) => prev.filter((t) => t.id !== taskId));
+      return;
+    }
+
+    try {
+      await deleteDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`));
+    } catch (err) {
+      console.error("Error deleting task:", err);
+    }
   };
 
   const toggleComplete = (taskId, triggerCelebration = true) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return null;
+
+    const isNowCompleted = !target.completed;
     let nextRecurringTask = null;
 
-    setTasks((prev) => {
-      const target = prev.find((t) => t.id === taskId);
-      if (!target) return prev;
+    if (isNowCompleted && triggerCelebration) {
+      try {
+        confetti({
+          particleCount: 40, spread: 60, origin: { y: 0.85 },
+          colors: ['#6366f1', '#a855f7', '#10b981', '#38bdf8'],
+          disableForReducedMotion: true,
+        });
+      } catch {}
+    }
 
-      const isNowCompleted = !target.completed;
+    const updatedHistory = [
+      ...(target.history || []),
+      {
+        action: isNowCompleted ? 'completed' : 'uncompleted',
+        timestamp: new Date().toISOString(),
+        text: isNowCompleted ? 'Task completed' : 'Task marked as active',
+      },
+    ];
 
-      if (isNowCompleted && triggerCelebration) {
-        try {
-          confetti({
-            particleCount: 40,
-            spread: 60,
-            origin: { y: 0.85 },
-            colors: ['#6366f1', '#a855f7', '#10b981', '#38bdf8'],
-            disableForReducedMotion: true,
-          });
-        } catch {
-          // ignore if canvas-confetti is unavailable
-        }
-      }
+    const updatedTarget = {
+      ...target,
+      completed: isNowCompleted,
+      completedAt: isNowCompleted ? new Date().toISOString() : null,
+      history: updatedHistory,
+    };
 
-      const updatedHistory = [
-        ...(target.history || []),
-        {
-          action: isNowCompleted ? 'completed' : 'uncompleted',
-          timestamp: new Date().toISOString(),
-          text: isNowCompleted ? 'Task completed' : 'Task marked as active',
-        },
-      ];
+    if (isNowCompleted && target.repeat && target.repeat !== 'none') {
+      const nextDueDate = getNextRecurringDate(target.dueDate, target.repeat);
+      const recurringId = `task-${Date.now()}-next`;
 
-      const updatedTarget = {
+      const resetSubtasks = (target.subtasks || []).map((sub, idx) => ({
+        ...sub, id: `sub-${recurringId}-${idx}`, completed: false,
+      }));
+
+      nextRecurringTask = {
         ...target,
-        completed: isNowCompleted,
-        completedAt: isNowCompleted ? new Date().toISOString() : null,
-        history: updatedHistory,
+        id: recurringId,
+        dueDate: nextDueDate,
+        completed: false,
+        completedAt: null,
+        createdAt: new Date().toISOString(),
+        subtasks: resetSubtasks,
+        history: [{
+          action: 'recurring_created',
+          timestamp: new Date().toISOString(),
+          text: `Auto-generated recurrence for ${nextDueDate}`,
+        }],
       };
+    }
 
-      // Recurring Task Handling (Requirement 11):
-      // When a recurring task is completed, automatically create the next occurrence
-      if (isNowCompleted && target.repeat && target.repeat !== 'none') {
-        const nextDueDate = getNextRecurringDate(target.dueDate, target.repeat);
-        const recurringId = `task-${Date.now()}-next`;
+    if (!isAuth) {
+      setLocalTasks((prev) => {
+        const newTaskList = prev.map((t) => (t.id === taskId ? updatedTarget : t));
+        if (nextRecurringTask) return [nextRecurringTask, ...newTaskList];
+        return newTaskList;
+      });
+      return nextRecurringTask;
+    }
 
-        // Reset subtasks for next occurrence
-        const resetSubtasks = (target.subtasks || []).map((sub, idx) => ({
-          ...sub,
-          id: `sub-${recurringId}-${idx}`,
-          completed: false,
-        }));
-
-        nextRecurringTask = {
-          ...target,
-          id: recurringId,
-          dueDate: nextDueDate,
-          completed: false,
-          completedAt: null,
-          createdAt: new Date().toISOString(),
-          subtasks: resetSubtasks,
-          history: [
-            {
-              action: 'recurring_created',
-              timestamp: new Date().toISOString(),
-              text: `Auto-generated recurrence for ${nextDueDate}`,
-            },
-          ],
-        };
-      }
-
-      const newTaskList = prev.map((t) => (t.id === taskId ? updatedTarget : t));
-
-      if (nextRecurringTask) {
-        return [nextRecurringTask, ...newTaskList];
-      }
-
-      return newTaskList;
-    });
+    // Firestore batch write
+    const batch = writeBatch(db);
+    batch.set(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), updatedTarget, { merge: true });
+    if (nextRecurringTask) {
+      batch.set(doc(db, `users/${currentUser.uid}/tasks/${nextRecurringTask.id}`), nextRecurringTask);
+    }
+    batch.commit().catch(err => console.error("Error toggling completion:", err));
 
     return nextRecurringTask;
   };
 
-  const toggleSubtask = (taskId, subtaskId) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
+  const toggleSubtask = async (taskId, subtaskId) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
 
-        const updatedSubtasks = (t.subtasks || []).map((s) => {
-          if (s.id !== subtaskId) return s;
-          return { ...s, completed: !s.completed };
-        });
-
-        return {
-          ...t,
-          subtasks: updatedSubtasks,
-        };
-      })
+    const updatedSubtasks = (target.subtasks || []).map((s) =>
+      s.id === subtaskId ? { ...s, completed: !s.completed } : s
     );
+
+    if (!isAuth) {
+      setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t));
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { subtasks: updatedSubtasks }, { merge: true });
+    } catch (err) {
+      console.error("Error toggling subtask:", err);
+    }
   };
 
-  const addSubtask = (taskId, title) => {
+  const addSubtask = async (taskId, title) => {
     if (!title?.trim()) return;
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const newSub = {
-          id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-          title: title.trim(),
-          completed: false,
-        };
-        return {
-          ...t,
-          subtasks: [...(t.subtasks || []), newSub],
-        };
-      })
-    );
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
+
+    const newSub = {
+      id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      title: title.trim(),
+      completed: false,
+    };
+    const updatedSubtasks = [...(target.subtasks || []), newSub];
+
+    if (!isAuth) {
+      setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t));
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { subtasks: updatedSubtasks }, { merge: true });
+    } catch (err) {
+      console.error("Error adding subtask:", err);
+    }
   };
 
-  const deleteSubtask = (taskId, subtaskId) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        return {
-          ...t,
-          subtasks: (t.subtasks || []).filter((s) => s.id !== subtaskId),
-        };
-      })
-    );
+  const deleteSubtask = async (taskId, subtaskId) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
+
+    const updatedSubtasks = (target.subtasks || []).filter((s) => s.id !== subtaskId);
+
+    if (!isAuth) {
+      setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t));
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { subtasks: updatedSubtasks }, { merge: true });
+    } catch (err) {
+      console.error("Error deleting subtask:", err);
+    }
   };
 
-  const togglePin = (taskId) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        return { ...t, pinned: !t.pinned };
-      })
-    );
+  const togglePin = async (taskId) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
+
+    if (!isAuth) {
+      setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, pinned: !t.pinned } : t));
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { pinned: !target.pinned }, { merge: true });
+    } catch (err) {
+      console.error("Error toggling pin:", err);
+    }
   };
 
-  const rescheduleTask = (taskId, newDueDate, newDueTime) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const newHistory = [
-          ...(t.history || []),
-          {
-            action: 'rescheduled',
-            timestamp: new Date().toISOString(),
-            text: `Rescheduled to ${newDueDate}${newDueTime ? ` at ${newDueTime}` : ''}`,
-          },
-        ];
-        return {
-          ...t,
-          dueDate: newDueDate,
-          dueTime: newDueTime !== undefined ? newDueTime : t.dueTime,
-          history: newHistory,
-        };
-      })
-    );
+  const rescheduleTask = async (taskId, newDueDate, newDueTime) => {
+    const target = tasks.find(t => t.id === taskId);
+    if (!target) return;
+
+    const newHistory = [
+      ...(target.history || []),
+      { action: 'rescheduled', timestamp: new Date().toISOString(), text: `Rescheduled to ${newDueDate}${newDueTime ? ` at ${newDueTime}` : ''}` },
+    ];
+
+    const updates = {
+      dueDate: newDueDate,
+      dueTime: newDueTime !== undefined ? newDueTime : target.dueTime,
+      history: newHistory,
+    };
+
+    if (!isAuth) {
+      setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+      return;
+    }
+
+    try {
+      await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), updates, { merge: true });
+    } catch (err) {
+      console.error("Error rescheduling:", err);
+    }
   };
 
-  const addCategory = ({ name, color = 'indigo', emoji = '📁', icon = 'Tag' }) => {
+  const addCategory = async ({ name, color = 'indigo', emoji = '📁', icon = 'Tag' }) => {
     const id = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const existing = categories.find((c) => c.id === id);
     if (existing) return existing;
 
     const newCategory = { id, name: name.trim(), color, emoji, icon };
-    setCategories((prev) => [...prev, newCategory]);
+    const newCategories = [...categories, newCategory];
+
+    await updateCategories(newCategories);
     return newCategory;
   };
 
-  const clearCompletedTasks = () => {
-    setTasks((prev) => prev.filter((t) => !t.completed));
+  const clearCompletedTasks = async () => {
+    const toDelete = tasks.filter(t => t.completed);
+    if (!toDelete.length) return;
+
+    if (!isAuth) {
+      setLocalTasks((prev) => prev.filter((t) => !t.completed));
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      toDelete.forEach(t => {
+        batch.delete(doc(db, `users/${currentUser.uid}/tasks/${t.id}`));
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error("Error clearing completed:", err);
+    }
   };
 
-  const clearAllData = () => {
-    setTasks([]);
+  const clearAllData = async () => {
+    if (!isAuth) {
+      setLocalTasks([]);
+      return;
+    }
+    try {
+      const batch = writeBatch(db);
+      tasks.forEach(t => {
+        batch.delete(doc(db, `users/${currentUser.uid}/tasks/${t.id}`));
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error("Error clearing all:", err);
+    }
   };
 
-  const restoreSampleData = () => {
-    setTasks(INITIAL_TASKS);
-    setCategories(DEFAULT_CATEGORIES);
+  const restoreSampleData = async () => {
+    if (!isAuth) {
+      setLocalTasks(INITIAL_TASKS);
+      setLocalCategories(DEFAULT_CATEGORIES);
+      return;
+    }
+
+    try {
+      const batch = writeBatch(db);
+      tasks.forEach(t => {
+        batch.delete(doc(db, `users/${currentUser.uid}/tasks/${t.id}`));
+      });
+      INITIAL_TASKS.forEach(t => {
+        batch.set(doc(db, `users/${currentUser.uid}/tasks/${t.id}`), t);
+      });
+      await batch.commit();
+
+      await updateCategories(DEFAULT_CATEGORIES);
+    } catch (err) {
+      console.error("Error restoring sample:", err);
+    }
   };
 
   return {

@@ -1,10 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Calendar as CalendarIcon, 
-  Plus, 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Calendar as CalendarIcon,
+  Plus,
   CheckCircle2
 } from 'lucide-react';
 import { TaskCard } from '../components/TaskCard';
@@ -90,59 +90,64 @@ export function CalendarPage({
   const todayStr = toISODateString(today);
 
   return (
-    <div className="space-y-6 pb-24 md:pb-12">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-5 pb-24 md:pb-12"
+    >
       {/* Calendar Header Controls */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Schedule & Calendar
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
+            Schedule
           </h2>
           <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Plan and review days smoothly</p>
         </div>
 
         <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.96 }}
           type="button"
           onClick={handleJumpToToday}
-          className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700 text-xs font-semibold text-zinc-800 dark:text-zinc-200 border border-slate-200/80 dark:border-white/5 transition-colors"
+          className="px-3.5 py-1.5 rounded-xl bg-zinc-100/80 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors border border-black/[0.04] dark:border-white/[0.06] cursor-pointer"
         >
           Today
         </motion.button>
       </div>
 
       {/* Month Navigator Glass Card */}
-      <div className="rounded-3xl glass-card p-4 md:p-6 border border-slate-200/80 dark:border-white/10 shadow-glass">
+      <div className="rounded-3xl glass-card p-4 sm:p-6 border border-black/[0.05] dark:border-white/[0.07]">
         {/* Month Selector header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base md:text-lg font-bold text-zinc-900 dark:text-zinc-100">
+          <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             {monthTitle}
           </h3>
 
           <div className="flex items-center gap-1">
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.88 }}
               type="button"
               onClick={handlePrevMonth}
-              className="p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
               aria-label="Previous month"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-4 h-4" />
             </motion.button>
             <motion.button
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.88 }}
               type="button"
               onClick={handleNextMonth}
-              className="p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-xl text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
               aria-label="Next month"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-4 h-4" />
             </motion.button>
           </div>
         </div>
 
         {/* Days of Week Header */}
-        <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-[11px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider mb-2">
           {WEEKDAYS.map((day) => (
             <div key={day} className="py-1">
               {day}
@@ -151,7 +156,7 @@ export function CalendarPage({
         </div>
 
         {/* Month Days Grid */}
-        <div className="grid grid-cols-7 gap-1 md:gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
           {monthData.map((d, idx) => {
             const isSelected = d.dateStr === selectedDateStr;
             const isToday = d.dateStr === todayStr;
@@ -163,24 +168,24 @@ export function CalendarPage({
                 key={idx}
                 type="button"
                 onClick={() => setSelectedDateStr(d.dateStr)}
-                className={`relative min-h-[50px] md:min-h-[64px] rounded-2xl p-1.5 flex flex-col items-center justify-between transition-all ${
+                className={`relative min-h-[46px] sm:min-h-[58px] rounded-2xl p-1.5 flex flex-col items-center justify-between transition-all duration-150 cursor-pointer ${
                   isSelected
-                    ? 'bg-indigo-600 text-white font-bold shadow-lg shadow-indigo-600/30 scale-[1.03]'
+                    ? 'accent-themed-badge text-white font-bold shadow-md'
                     : isToday
-                    ? 'bg-indigo-50 dark:bg-indigo-500/15 border border-indigo-200 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 font-semibold'
+                    ? 'accent-themed-pill-active border font-bold'
                     : d.isCurrentMonth
-                    ? 'text-zinc-800 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-white/5'
-                    : 'text-zinc-400 dark:text-zinc-600 opacity-60 hover:opacity-100'
+                    ? 'text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-white/[0.04]'
+                    : 'text-zinc-400 dark:text-zinc-600 opacity-35 hover:opacity-100'
                 }`}
               >
-                <span className="text-xs md:text-sm font-medium">{d.dayNumber}</span>
+                <span className="text-xs sm:text-sm font-medium leading-none mt-0.5">{d.dayNumber}</span>
 
                 {/* Task Indicators */}
-                <div className="flex items-center gap-1 justify-center h-2">
+                <div className="flex items-center gap-0.5 sm:gap-1 justify-center h-1.5 mb-0.5">
                   {dayTasks.slice(0, 3).map((t, i) => (
                     <span
                       key={t.id || i}
-                      className={`w-1.5 h-1.5 rounded-full ${
+                      className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${
                         isSelected
                           ? 'bg-white'
                           : t.completed
@@ -189,12 +194,12 @@ export function CalendarPage({
                           ? 'bg-rose-500'
                           : t.priority === 'medium'
                           ? 'bg-amber-500'
-                          : 'bg-indigo-500'
+                          : 'accent-themed-badge'
                       }`}
                     />
                   ))}
                   {dayTasks.length > 3 && (
-                    <span className={`text-[9px] leading-none ${isSelected ? 'text-white' : 'text-zinc-500 dark:text-zinc-400'}`}>
+                    <span className={`text-[8px] leading-none ${isSelected ? 'text-white' : 'text-zinc-400'}`}>
                       +
                     </span>
                   )}
@@ -209,21 +214,21 @@ export function CalendarPage({
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CalendarIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-            <h3 className="text-base md:text-lg font-bold text-zinc-900 dark:text-zinc-100">
-              Tasks for {formattedSelectedDate}
+            <CalendarIcon className="w-4 h-4 accent-themed-text" />
+            <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              {formattedSelectedDate}
             </h3>
-            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-400 border border-slate-300/60 dark:border-white/5">
+            <span className="text-xs font-mono font-bold px-2 py-0.2 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-400 border border-black/[0.04] dark:border-white/5">
               {selectedDateTasks.length}
             </span>
           </div>
 
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
             type="button"
             onClick={() => onOpenQuickAddWithDate(selectedDateStr)}
-            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1 transition-all shadow-md shadow-indigo-600/20"
+            className="px-3.5 py-1.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/20 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Task</span>
@@ -242,7 +247,7 @@ export function CalendarPage({
           <div className="space-y-3">
             {/* Active Tasks on Selected Date */}
             {activeSelectedTasks.length > 0 && (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <AnimatePresence mode="popLayout">
                   {activeSelectedTasks.map((task) => (
                     <TaskCard
@@ -262,11 +267,11 @@ export function CalendarPage({
             {/* Completed Tasks on Selected Date */}
             {completedSelectedTasks.length > 0 && (
               <div className="pt-2">
-                <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2.5 flex items-center gap-1">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Completed ({completedSelectedTasks.length})
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-2.5">
                   <AnimatePresence mode="popLayout">
                     {completedSelectedTasks.map((task) => (
                       <TaskCard
@@ -286,6 +291,6 @@ export function CalendarPage({
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -25,7 +25,7 @@ export function ConfirmDialog({
           className="w-full max-w-sm rounded-2xl glass-dropdown p-6 shadow-2xl border border-slate-200 dark:border-white/10 text-left"
         >
           <div className="flex items-start justify-between mb-4">
-            <div className={`p-3 rounded-xl ${isDestructive ? 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20' : 'bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20'}`}>
+            <div className={`p-3 rounded-xl ${isDestructive ? 'bg-rose-500/10 text-rose-500 dark:text-rose-400 border border-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'}`}>
               <AlertTriangle className="w-6 h-6" />
             </div>
             <button
@@ -46,7 +46,7 @@ export function ConfirmDialog({
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium rounded-xl text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white bg-slate-100 dark:bg-zinc-800/60 hover:bg-slate-200 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-700/60 transition-colors"
+              className="px-4 py-2 text-sm font-medium rounded-xl text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white bg-zinc-100 dark:bg-zinc-800/60 hover:bg-zinc-200 dark:hover:bg-zinc-800 border border-black/[0.05] dark:border-zinc-700/60 transition-colors"
             >
               {cancelText}
             </motion.button>
@@ -58,10 +58,10 @@ export function ConfirmDialog({
                 onConfirm();
                 onClose();
               }}
-              className={`px-4 py-2 text-sm font-semibold rounded-xl text-white shadow-lg transition-all ${
+              className={`px-4 py-2 text-sm font-semibold rounded-xl text-white shadow-md transition-all ${
                 isDestructive
                   ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-600/20'
-                  : 'bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/20'
               }`}
             >
               {confirmText}

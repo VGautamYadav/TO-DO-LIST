@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, CheckCircle2, ChevronDown, ChevronUp, LogIn, LogOut, Sparkles } from 'lucide-react';
 import { ProgressCard } from '../components/ProgressCard';
 import { TaskCard } from '../components/TaskCard';
 import { HabitsSection } from '../components/HabitsSection';
@@ -8,10 +8,32 @@ import { EmptyState } from '../components/EmptyState';
 import { getGreeting, formatCurrentDate, toISODateString } from '../utils/dateUtils';
 import { calculateTodayProgress, sortTasks } from '../utils/taskUtils';
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.08,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
 export function Home({
   tasks,
   categories,
   habits,
+  currentUser,
+  onOpenAuth,
+  onLogout,
   onToggleComplete,
   onTogglePin,
   onSelectTask,
@@ -20,6 +42,7 @@ export function Home({
   onToggleHabit,
   onAddHabit,
   onDeleteHabit,
+  onNavigateToTasks,
 }) {
   const [showCompleted, setShowCompleted] = React.useState(true);
   const todayStr = toISODateString(new Date());
@@ -37,67 +60,102 @@ export function Home({
   const progress = calculateTodayProgress(tasks);
 
   return (
-    <div className="space-y-6 pb-20 md:pb-10">
-      {/* Header Greeting & Date */}
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-6 pb-24 md:pb-12"
+    >
+      {/* Header Greeting & Date & Mobile Account status */}
       <motion.div
-        initial={{ opacity: 0, y: -6 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2"
+        variants={itemVariants}
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
       >
-        <div>
-          <h2 className="text-2xl md:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            {getGreeting()}
-          </h2>
-          <p className="text-sm font-medium text-zinc-500 dark:text-zinc-400 mt-0.5">
-            {formatCurrentDate(new Date())}
-          </p>
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              {getGreeting(currentUser?.displayName || (currentUser?.email ? currentUser.email.split('@')[0] : ''))}
+            </h2>
+            <p className="text-xs sm:text-sm font-medium text-zinc-400 dark:text-zinc-500 mt-0.5 flex items-center gap-1.5">
+              <span>{formatCurrentDate(new Date())}</span>
+              <span>·</span>
+              <span className="accent-themed-text font-mono">{todayActiveTasks.length} pending today</span>
+            </p>
+          </div>
+
+          {/* Mobile-only Account / Sign Out Pill */}
+          <div className="sm:hidden flex items-center gap-1.5">
+            {currentUser ? (
+              <button
+                type="button"
+                onClick={onLogout}
+                className="px-2.5 py-1.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 hover:text-rose-600 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Sign Out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onOpenAuth}
+                className="px-3 py-1.5 rounded-xl bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-xs font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Quick Add Button (Desktop visible, mobile has floating + button) */}
+        {/* Quick Add Button (Desktop visible) */}
         <div className="hidden sm:flex items-center gap-2">
           <motion.button
             whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileTap={{ scale: 0.96 }}
             type="button"
             onClick={onOpenQuickAdd}
-            className="px-4 py-2 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/25 flex items-center gap-2 transition-all"
+            className="px-4 py-2 rounded-2xl accent-themed-btn text-white font-semibold text-xs shadow-md flex items-center gap-1.5 transition-all cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Add Task</span>
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>New Task</span>
           </motion.button>
         </div>
       </motion.div>
 
       {/* Progress Card */}
-      <ProgressCard progress={progress} />
+      <motion.div variants={itemVariants}>
+        <ProgressCard progress={progress} onClick={onNavigateToTasks} />
+      </motion.div>
 
       {/* Habits Section */}
-      <HabitsSection
-        habits={habits}
-        onToggleHabit={onToggleHabit}
-        onAddHabit={onAddHabit}
-        onDeleteHabit={onDeleteHabit}
-      />
+      <motion.div variants={itemVariants}>
+        <HabitsSection
+          habits={habits}
+          onToggleHabit={onToggleHabit}
+          onAddHabit={onAddHabit}
+          onDeleteHabit={onDeleteHabit}
+        />
+      </motion.div>
 
       {/* Today's Tasks Section */}
-      <div className="space-y-3">
+      <motion.div variants={itemVariants} className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <h3 className="text-base md:text-lg font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+            <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
               Today's Tasks
             </h3>
-            <span className="text-xs font-mono font-semibold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-400 border border-slate-300/60 dark:border-white/5">
+            <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-white/[0.06] text-zinc-600 dark:text-zinc-400 border border-black/[0.05] dark:border-white/[0.06]">
               {todayActiveTasks.length}
             </span>
           </div>
 
           {todayActiveTasks.length > 0 && (
             <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.96 }}
               type="button"
               onClick={onOpenQuickAdd}
-              className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold flex items-center gap-1"
+              className="text-xs text-[#6366f1] dark:text-[#818cf8] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add task</span>
@@ -134,11 +192,11 @@ export function Home({
 
         {/* Completed Today Section */}
         {todayCompletedTasks.length > 0 && (
-          <div className="pt-4 border-t border-slate-200/80 dark:border-white/5">
+          <div className="pt-4 border-t border-black/[0.04] dark:border-white/[0.04]">
             <button
               type="button"
               onClick={() => setShowCompleted(!showCompleted)}
-              className="flex items-center justify-between w-full py-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors uppercase tracking-wider"
+              className="flex items-center justify-between w-full py-2 text-xs font-semibold text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors uppercase tracking-wider cursor-pointer"
             >
               <span>Completed Today ({todayCompletedTasks.length})</span>
               {showCompleted ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -163,21 +221,21 @@ export function Home({
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Floating Action Button for Mobile Quick Add */}
-      <div className="md:hidden fixed right-5 bottom-20 z-40">
+      <div className="md:hidden fixed right-4 bottom-20 z-40">
         <motion.button
-          whileTap={{ scale: 0.9 }}
-          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.88 }}
+          whileHover={{ scale: 1.05 }}
           type="button"
           onClick={onOpenQuickAdd}
-          className="w-14 h-14 rounded-full bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-xl shadow-indigo-600/40 flex items-center justify-center border border-white/20"
+          className="w-13 h-13 rounded-full bg-[#6366f1] hover:bg-[#4f46e5] text-white shadow-lg shadow-indigo-600/30 flex items-center justify-center border border-white/20 cursor-pointer"
           aria-label="Add new task"
         >
-          <Plus className="w-7 h-7 stroke-[2.5]" />
+          <Plus className="w-6 h-6 stroke-[2.5]" />
         </motion.button>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -1,15 +1,16 @@
 // Date formatting and helper utilities
 
-export function getGreeting() {
+export function getGreeting(name = '') {
   const hour = new Date().getHours();
+  const suffix = name ? `, ${name}` : '';
   if (hour >= 5 && hour < 12) {
-    return 'Good morning 👋';
+    return `Good morning${suffix} 👋`;
   } else if (hour >= 12 && hour < 17) {
-    return 'Good afternoon 👋';
+    return `Good afternoon${suffix} 👋`;
   } else if (hour >= 17 && hour < 22) {
-    return 'Good evening 👋';
+    return `Good evening${suffix} 👋`;
   } else {
-    return 'Good night 👋';
+    return `Good night${suffix} 👋`;
   }
 }
 

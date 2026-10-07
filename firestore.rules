@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && (!("title" in request.resource.data) || request.resource.data.title is string && request.resource.data.title.size() <= 300)
+          && (!("description" in request.resource.data) || request.resource.data.description is string && request.resource.data.description.size() <= 5000);
+      }
+
+      match /habits/{habitId} {
+        allow read: if isOwner(userId);
+        allow write: if isOwner(userId)
+          && (!("name" in request.resource.data) || request.resource.data.name is string && request.resource.data.name.size() <= 200);
+      }
+
+      match /{document=**} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+  }
+}

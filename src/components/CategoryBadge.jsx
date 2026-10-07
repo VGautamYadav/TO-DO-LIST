@@ -10,15 +10,15 @@ export function CategoryBadge({ categoryId, categories = DEFAULT_CATEGORIES, siz
 
   const style = CATEGORY_COLORS[cat.color] || CATEGORY_COLORS.zinc;
 
-  const sizeClasses = size === 'xs' 
-    ? 'text-[11px] px-2 py-0.5 gap-1' 
-    : 'text-xs px-2.5 py-1 gap-1.5';
+  const sizeClasses = size === 'xs'
+    ? 'text-[10px] sm:text-[11px] px-1.5 py-0.5 gap-1'
+    : 'text-xs px-2 py-0.5 gap-1.5';
 
   return (
     <span
-      className={`inline-flex items-center font-medium rounded-lg border backdrop-blur-xs transition-colors ${style.bg} ${sizeClasses}`}
+      className={`inline-flex items-center font-medium rounded-md border transition-colors ${style.bg} ${sizeClasses}`}
     >
-      <span className="text-[12px] leading-none">{cat.emoji}</span>
+      <span className="text-[11px] leading-none">{cat.emoji}</span>
       <span className="truncate max-w-[120px]">{cat.name}</span>
     </span>
   );

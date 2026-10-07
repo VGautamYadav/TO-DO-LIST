@@ -42,7 +42,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+              <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">Reschedule Task</h3>
             </div>
             <button
@@ -64,7 +64,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
               whileTap={{ scale: 0.97 }}
               type="button"
               onClick={() => handleQuickReschedule(todayStr)}
-              className="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white border border-slate-200 dark:border-zinc-700/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex flex-col items-center gap-1 text-center"
+              className="px-3 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white border border-black/[0.05] dark:border-zinc-700/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex flex-col items-center gap-1 text-center"
             >
               <span className="font-semibold">Today</span>
               <span className="text-[10px] opacity-75">Now</span>
@@ -74,7 +74,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
               whileTap={{ scale: 0.97 }}
               type="button"
               onClick={() => handleQuickReschedule(tomorrowStr)}
-              className="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white border border-slate-200 dark:border-zinc-700/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex flex-col items-center gap-1 text-center"
+              className="px-3 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white border border-black/[0.05] dark:border-zinc-700/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex flex-col items-center gap-1 text-center"
             >
               <span className="font-semibold">Tomorrow</span>
               <span className="text-[10px] opacity-75">+1 Day</span>
@@ -84,7 +84,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
               whileTap={{ scale: 0.97 }}
               type="button"
               onClick={() => handleQuickReschedule(nextWeekStr)}
-              className="px-3 py-2.5 rounded-xl bg-slate-100 dark:bg-zinc-800/80 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white border border-slate-200 dark:border-zinc-700/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex flex-col items-center gap-1 text-center"
+              className="px-3 py-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800/80 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 dark:hover:text-white border border-black/[0.05] dark:border-zinc-700/60 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all flex flex-col items-center gap-1 text-center"
             >
               <span className="font-semibold">Next Week</span>
               <span className="text-[10px] opacity-75">+7 Days</span>
@@ -92,9 +92,9 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
           </div>
 
           <div className="relative flex py-1 items-center mb-4">
-            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
+            <div className="flex-grow border-t border-black/[0.06] dark:border-zinc-800"></div>
             <span className="flex-shrink mx-2 text-[11px] text-zinc-400 dark:text-zinc-500 uppercase tracking-wider font-semibold">or custom date</span>
-            <div className="flex-grow border-t border-slate-200 dark:border-zinc-800"></div>
+            <div className="flex-grow border-t border-black/[0.06] dark:border-zinc-800"></div>
           </div>
 
           <form onSubmit={handleCustomSubmit} className="space-y-3">
@@ -105,7 +105,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
                 value={customDate}
                 min={todayStr}
                 onChange={(e) => setCustomDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-700/80 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/90 border border-black/[0.08] dark:border-zinc-700/80 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-emerald-500"
                 required
               />
             </div>
@@ -115,7 +115,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
                 type="time"
                 value={customTime}
                 onChange={(e) => setCustomTime(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900/90 border border-slate-200 dark:border-zinc-700/80 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-indigo-500"
+                className="w-full px-3 py-2 rounded-xl bg-zinc-50 dark:bg-zinc-900/90 border border-black/[0.08] dark:border-zinc-700/80 text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:border-emerald-500"
               />
             </div>
             <motion.button
@@ -123,7 +123,7 @@ export function RescheduleModal({ isOpen, task, onReschedule, onClose }) {
               whileTap={{ scale: 0.98 }}
               type="submit"
               disabled={!customDate}
-              className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-indigo-600/20"
+              className="w-full mt-2 py-2.5 rounded-xl text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               Apply Date
             </motion.button>

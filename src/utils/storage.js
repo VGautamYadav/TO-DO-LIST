@@ -1,11 +1,11 @@
 // LocalStorage and backup export/import management
 
 const STORAGE_KEYS = {
-  TASKS: 'auratask_tasks_v1',
-  HABITS: 'auratask_habits_v1',
-  CATEGORIES: 'auratask_categories_v1',
-  SETTINGS: 'auratask_settings_v1',
-  CUSTOM_TAGS: 'auratask_tags_v1',
+  TASKS: 'SiMplyDOIT_tasks_v1',
+  HABITS: 'SiMplyDOIT_habits_v1',
+  CATEGORIES: 'SiMplyDOIT_categories_v1',
+  SETTINGS: 'SiMplyDOIT_settings_v1',
+  CUSTOM_TAGS: 'SiMplyDOIT_tags_v1',
 };
 
 export function loadFromStorage(key, fallbackValue) {

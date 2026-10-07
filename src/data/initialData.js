@@ -275,6 +275,9 @@ export const INITIAL_HABITS = [
 
 export const INITIAL_SETTINGS = {
   theme: 'dark', // 'dark', 'light', 'system'
+  accentColor: 'violet',
+  uiScale: 100, // 75 to 125 (%)
+  contentWidth: 'default', // 'compact', 'default', 'wide', 'full'
   notificationsEnabled: true,
   reminderSound: true,
   defaultPriority: 'medium',
