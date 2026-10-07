@@ -46,9 +46,17 @@ try {
 }
 
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+export let db = null;
+if (app) {
+  try {
+    db = getFirestore(app);
+  } catch (err) {
+    console.error("Firestore initialization failed. Please check your credentials or network.", err);
+  }
+}
 
-// Enable offline persistence
+// Enable offline persistence (TEMPORARILY DISABLED FOR SYNC DIAGNOSTICS)
+/*
 if (db) {
   enableIndexedDbPersistence(db).catch((err) => {
     if (err.code === 'failed-precondition') {
@@ -58,6 +66,7 @@ if (db) {
     }
   });
 }
+*/
 
 // Authentication helper methods
 export const firebaseAuthService = {

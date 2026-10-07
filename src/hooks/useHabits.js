@@ -12,18 +12,28 @@ export function useHabits() {
   const [localHabits, setLocalHabits] = useLocalStorage(STORAGE_KEYS.HABITS, INITIAL_HABITS);
   const [firestoreHabits, setFirestoreHabits] = useState([]);
 
+
   // Choose source of truth
-  const isAuth = Boolean(currentUser && !currentUser.isDemoAccount && db);
-  const habits = isAuth ? firestoreHabits : localHabits;
+  const isAuthUser = Boolean(currentUser && !currentUser.isDemoAccount);
+  const [dbError, setDbError] = useState(null);
+  const habits = isAuthUser ? firestoreHabits : localHabits;
 
   // Sync with Firestore
   useEffect(() => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setFirestoreHabits([]);
+      setDbError(null);
       return;
     }
 
-    const unsubscribe = onSnapshot(collection(db, `users/${currentUser.uid}/habits`), (snapshot) => {
+    if (!db) {
+      setDbError('Firestore database is unavailable. Please check your connection or configuration.');
+      return;
+    }
+
+    setDbError(null);
+
+    const unsubscribe = onSnapshot(collection(db, `users/${currentUser.uid}/habits`), { includeMetadataChanges: true }, (snapshot) => {
       const fetchedHabits = [];
       snapshot.forEach((docSnap) => {
         fetchedHabits.push({ id: docSnap.id, ...docSnap.data() });
@@ -31,15 +41,17 @@ export function useHabits() {
       // Optional: sort by createdAt descending if needed
       fetchedHabits.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setFirestoreHabits(fetchedHabits);
+
     }, (error) => {
       console.error("Firestore habits listener error:", error);
+      setDbError(error.message);
     });
 
     return () => unsubscribe();
-  }, [currentUser, isAuth]);
+  }, [currentUser, isAuthUser]);
 
   const setHabits = async (updater) => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalHabits(updater);
       return;
     }
@@ -54,7 +66,7 @@ export function useHabits() {
   const toggleHabitToday = async (habitId) => {
     const todayStr = toISODateString(new Date());
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalHabits((prev) =>
         prev.map((habit) => {
           if (habit.id !== habitId) return habit;
@@ -97,6 +109,7 @@ export function useHabits() {
       newLongest = Math.max(newLongest, newStreak);
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/habits/${habitId}`), {
         completedDates: updatedDates,
@@ -121,11 +134,12 @@ export function useHabits() {
       createdAt: new Date().toISOString(),
     };
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalHabits((prev) => [newHabit, ...prev]);
       return newHabit;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/habits/${newHabit.id}`), newHabit);
       return newHabit;
@@ -135,11 +149,12 @@ export function useHabits() {
   };
 
   const deleteHabit = async (habitId) => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalHabits((prev) => prev.filter((h) => h.id !== habitId));
       return;
     }
 
+    if (!db) return;
     try {
       await deleteDoc(doc(db, `users/${currentUser.uid}/habits/${habitId}`));
     } catch (err) {
@@ -149,6 +164,7 @@ export function useHabits() {
 
   return {
     habits,
+    dbError,
     setHabits,
     toggleHabitToday,
     addHabit,

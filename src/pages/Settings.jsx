@@ -38,6 +38,8 @@ export function Settings({
   settings,
   setSettings,
   categories,
+  tasks,
+  habits,
   onClearCompleted,
   onClearAll,
   onRestoreSample,
@@ -221,6 +223,8 @@ export function Settings({
                 <span>Sign Out</span>
               </motion.button>
             </div>
+
+
 
             <div className="py-2 border-t border-slate-100 dark:border-white/5 space-y-3">
               <div className="flex items-center justify-between">

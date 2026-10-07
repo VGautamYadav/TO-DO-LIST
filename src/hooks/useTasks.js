@@ -15,33 +15,42 @@ export function useTasks() {
   // Local state
   const [localTasks, setLocalTasks] = useLocalStorage(STORAGE_KEYS.TASKS, INITIAL_TASKS);
   const [localCategories, setLocalCategories] = useLocalStorage(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
-  const [localCustomTags, setLocalCustomTags] = useLocalStorage(STORAGE_KEYS.CUSTOM_TAGS, [
-    'college', 'portfolio', 'coding', 'health', 'fitness', 'finance', 'shopping', 'urgent', 'exam'
-  ]);
+  const DEFAULT_CUSTOM_TAGS = ['college', 'portfolio', 'coding', 'health', 'fitness', 'finance', 'shopping', 'urgent', 'exam'];
+  const [localCustomTags, setLocalCustomTags] = useLocalStorage(STORAGE_KEYS.CUSTOM_TAGS, DEFAULT_CUSTOM_TAGS);
 
   // Firestore state
   const [firestoreTasks, setFirestoreTasks] = useState([]);
   const [firestoreCategories, setFirestoreCategories] = useState(null);
   const [firestoreCustomTags, setFirestoreCustomTags] = useState(null);
 
-  const isAuth = Boolean(currentUser && !currentUser.isDemoAccount && db);
+
+  const isAuthUser = Boolean(currentUser && !currentUser.isDemoAccount);
+  const [dbError, setDbError] = useState(null);
 
   // Computed state
-  const tasks = isAuth ? firestoreTasks : localTasks;
-  const categories = isAuth ? (firestoreCategories || localCategories) : localCategories;
-  const customTags = isAuth ? (firestoreCustomTags || localCustomTags) : localCustomTags;
+  const tasks = isAuthUser ? firestoreTasks : localTasks;
+  const categories = isAuthUser ? (firestoreCategories || DEFAULT_CATEGORIES) : localCategories;
+  const customTags = isAuthUser ? (firestoreCustomTags || DEFAULT_CUSTOM_TAGS) : localCustomTags;
 
   // Listeners
   useEffect(() => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setFirestoreTasks([]);
       setFirestoreCategories(null);
       setFirestoreCustomTags(null);
+      setDbError(null);
       return;
     }
 
+    if (!db) {
+      setDbError('Firestore database is unavailable. Please check your connection or configuration.');
+      return;
+    }
+
+    setDbError(null);
+
     // 1. Tasks Listener
-    const unsubscribeTasks = onSnapshot(collection(db, `users/${currentUser.uid}/tasks`), (snapshot) => {
+    const unsubscribeTasks = onSnapshot(collection(db, `users/${currentUser.uid}/tasks`), { includeMetadataChanges: true }, (snapshot) => {
       const fetchedTasks = [];
       snapshot.forEach((docSnap) => {
         fetchedTasks.push({ id: docSnap.id, ...docSnap.data() });
@@ -49,7 +58,11 @@ export function useTasks() {
       // Sort by createdAt descending
       fetchedTasks.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       setFirestoreTasks(fetchedTasks);
-    }, (error) => console.error("Firestore tasks listener error:", error));
+
+    }, (error) => {
+      console.error("Firestore tasks listener error:", error);
+      setDbError(error.message);
+    });
 
     // 2. User Document Listener (for categories and tags)
     const unsubscribeUser = onSnapshot(doc(db, `users/${currentUser.uid}`), (docSnap) => {
@@ -64,17 +77,18 @@ export function useTasks() {
       unsubscribeTasks();
       unsubscribeUser();
     };
-  }, [currentUser, isAuth]);
+  }, [currentUser, isAuthUser]);
 
   // Fallback direct setter (mainly used by Settings import)
   const setTasks = async (updater) => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(updater);
       return;
     }
     const newTasks = typeof updater === 'function' ? updater(tasks) : updater;
 
     // Batch write to replace all tasks
+    if (!db) return;
     try {
       const batch = writeBatch(db);
       // Delete existing
@@ -92,10 +106,11 @@ export function useTasks() {
   };
 
   const updateCustomTags = async (newTagsArray) => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalCustomTags(newTagsArray);
       return;
     }
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}`), { customTags: newTagsArray }, { merge: true });
     } catch (err) {
@@ -104,10 +119,11 @@ export function useTasks() {
   };
 
   const updateCategories = async (newCatsArray) => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalCategories(newCatsArray);
       return;
     }
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}`), { categories: newCatsArray }, { merge: true });
     } catch (err) {
@@ -149,11 +165,12 @@ export function useTasks() {
       updateCustomTags(mergedTags);
     }
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks((prev) => [newTask, ...prev]);
       return newTask;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${newTask.id}`), newTask);
       return newTask;
@@ -178,11 +195,12 @@ export function useTasks() {
       updateCustomTags(mergedTags);
     }
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks((prev) => prev.map((t) => (t.id === taskId ? updated : t)));
       return;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), updated, { merge: true });
     } catch (err) {
@@ -191,11 +209,12 @@ export function useTasks() {
   };
 
   const deleteTask = async (taskId) => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks((prev) => prev.filter((t) => t.id !== taskId));
       return;
     }
 
+    if (!db) return;
     try {
       await deleteDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`));
     } catch (err) {
@@ -260,7 +279,7 @@ export function useTasks() {
       };
     }
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks((prev) => {
         const newTaskList = prev.map((t) => (t.id === taskId ? updatedTarget : t));
         if (nextRecurringTask) return [nextRecurringTask, ...newTaskList];
@@ -268,6 +287,8 @@ export function useTasks() {
       });
       return nextRecurringTask;
     }
+
+    if (!db) return null;
 
     // Firestore batch write
     const batch = writeBatch(db);
@@ -288,11 +309,12 @@ export function useTasks() {
       s.id === subtaskId ? { ...s, completed: !s.completed } : s
     );
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t));
       return;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { subtasks: updatedSubtasks }, { merge: true });
     } catch (err) {
@@ -312,11 +334,12 @@ export function useTasks() {
     };
     const updatedSubtasks = [...(target.subtasks || []), newSub];
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t));
       return;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { subtasks: updatedSubtasks }, { merge: true });
     } catch (err) {
@@ -330,11 +353,12 @@ export function useTasks() {
 
     const updatedSubtasks = (target.subtasks || []).filter((s) => s.id !== subtaskId);
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, subtasks: updatedSubtasks } : t));
       return;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { subtasks: updatedSubtasks }, { merge: true });
     } catch (err) {
@@ -346,11 +370,12 @@ export function useTasks() {
     const target = tasks.find(t => t.id === taskId);
     if (!target) return;
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, pinned: !t.pinned } : t));
       return;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), { pinned: !target.pinned }, { merge: true });
     } catch (err) {
@@ -373,11 +398,12 @@ export function useTasks() {
       history: newHistory,
     };
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
       return;
     }
 
+    if (!db) return;
     try {
       await setDoc(doc(db, `users/${currentUser.uid}/tasks/${taskId}`), updates, { merge: true });
     } catch (err) {
@@ -401,11 +427,12 @@ export function useTasks() {
     const toDelete = tasks.filter(t => t.completed);
     if (!toDelete.length) return;
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks((prev) => prev.filter((t) => !t.completed));
       return;
     }
 
+    if (!db) return;
     try {
       const batch = writeBatch(db);
       toDelete.forEach(t => {
@@ -418,10 +445,11 @@ export function useTasks() {
   };
 
   const clearAllData = async () => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks([]);
       return;
     }
+    if (!db) return;
     try {
       const batch = writeBatch(db);
       tasks.forEach(t => {
@@ -434,12 +462,13 @@ export function useTasks() {
   };
 
   const restoreSampleData = async () => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalTasks(INITIAL_TASKS);
       setLocalCategories(DEFAULT_CATEGORIES);
       return;
     }
 
+    if (!db) return;
     try {
       const batch = writeBatch(db);
       tasks.forEach(t => {
@@ -458,6 +487,7 @@ export function useTasks() {
 
   return {
     tasks,
+    dbError,
     setTasks,
     categories,
     customTags,

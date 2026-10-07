@@ -452,6 +452,8 @@ export default function App() {
                   settings={settings}
                   setSettings={setSettings}
                   categories={categories}
+                  tasks={tasks}
+                  habits={habits}
                   onClearCompleted={clearCompletedTasks}
                   onClearAll={clearAllData}
                   onRestoreSample={restoreSampleData}

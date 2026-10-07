@@ -11,14 +11,21 @@ export function useTheme() {
   const [localSettings, setLocalSettings] = useLocalStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
   const [firestoreSettings, setFirestoreSettings] = useState(null);
 
-  const isAuth = Boolean(currentUser && !currentUser.isDemoAccount && db);
-  const settings = isAuth ? (firestoreSettings || localSettings || INITIAL_SETTINGS) : localSettings;
+  const isAuthUser = Boolean(currentUser && !currentUser.isDemoAccount);
+  const [dbError, setDbError] = useState(null);
+  const settings = isAuthUser ? (firestoreSettings || INITIAL_SETTINGS) : localSettings;
 
   useEffect(() => {
-    if (!isAuth) {
+    if (!isAuthUser) {
       setFirestoreSettings(null);
+      setDbError(null);
       return;
     }
+    if (!db) {
+      setDbError("Firestore database is unavailable.");
+      return;
+    }
+    setDbError(null);
     const unsubscribe = onSnapshot(doc(db, `users/${currentUser.uid}`), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -26,15 +33,23 @@ export function useTheme() {
           setFirestoreSettings(data.settings);
         }
       }
+    }, (error) => {
+      console.error("Firestore theme listener error:", error);
+      setDbError(error.message);
     });
     return () => unsubscribe();
-  }, [currentUser, isAuth]);
+  }, [currentUser, isAuthUser]);
 
   const updateSettings = async (updater) => {
     const newSettings = typeof updater === 'function' ? updater(settings) : updater;
 
-    if (!isAuth) {
+    if (!isAuthUser) {
       setLocalSettings(newSettings);
+      return;
+    }
+
+    if (!db) {
+      console.error("Database unavailable");
       return;
     }
 
@@ -117,6 +132,7 @@ export function useTheme() {
 
   return {
     theme,
+    dbError,
     setTheme,
     accentColor,
     setAccentColor,
