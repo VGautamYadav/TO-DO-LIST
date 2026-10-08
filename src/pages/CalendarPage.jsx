@@ -96,28 +96,32 @@ export function CalendarPage({
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
       className="space-y-5 pb-24 md:pb-12"
     >
-      {/* Calendar Header Controls */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
-            Schedule
-          </h2>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Plan and review days smoothly</p>
-        </div>
+      {/* Sticky Glass Header */}
+      <motion.header
+        className="sticky top-0 z-40 -mx-3 sm:-mx-6 md:-mx-8 px-3 sm:px-6 md:px-8 pt-2 pb-4 bg-white/70 dark:bg-[#08090d]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 mb-4"
+      >
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
+              Schedule
+            </h2>
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Plan and review days smoothly</p>
+          </div>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.96 }}
-          type="button"
-          onClick={handleJumpToToday}
-          className="px-3.5 py-1.5 rounded-xl bg-zinc-100/80 dark:bg-zinc-800 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors border border-black/[0.04] dark:border-white/[0.06] cursor-pointer"
-        >
-          Today
-        </motion.button>
-      </div>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.96 }}
+            type="button"
+            onClick={handleJumpToToday}
+            className="px-4 py-2 rounded-2xl bg-white/60 dark:bg-[#0f1118]/60 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-all border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md cursor-pointer backdrop-blur-md"
+          >
+            Today
+          </motion.button>
+        </div>
+      </motion.header>
 
       {/* Month Navigator Glass Card */}
-      <div className="rounded-3xl glass-card p-4 sm:p-6 border border-black/[0.05] dark:border-white/[0.07]">
+      <div className="relative rounded-3xl p-4 sm:p-6 overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)]">
         {/* Month Selector header */}
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
@@ -170,12 +174,12 @@ export function CalendarPage({
                 onClick={() => setSelectedDateStr(d.dateStr)}
                 className={`relative min-h-[46px] sm:min-h-[58px] rounded-2xl p-1.5 flex flex-col items-center justify-between transition-all duration-150 cursor-pointer ${
                   isSelected
-                    ? 'accent-themed-badge text-white font-bold shadow-md'
+                    ? 'accent-themed-badge text-white font-bold shadow-md shadow-indigo-500/20'
                     : isToday
-                    ? 'accent-themed-pill-active border font-bold'
+                    ? 'accent-themed-pill-active border font-bold shadow-sm backdrop-blur-md'
                     : d.isCurrentMonth
-                    ? 'text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100/80 dark:hover:bg-white/[0.04]'
-                    : 'text-zinc-400 dark:text-zinc-600 opacity-35 hover:opacity-100'
+                    ? 'text-zinc-800 dark:text-zinc-200 hover:bg-white/50 dark:hover:bg-white/5 hover:shadow-sm'
+                    : 'text-zinc-400 dark:text-zinc-600 opacity-35 hover:opacity-100 hover:bg-white/50 dark:hover:bg-white/5'
                 }`}
               >
                 <span className="text-xs sm:text-sm font-medium leading-none mt-0.5">{d.dayNumber}</span>
@@ -228,7 +232,7 @@ export function CalendarPage({
             whileTap={{ scale: 0.96 }}
             type="button"
             onClick={() => onOpenQuickAddWithDate(selectedDateStr)}
-            className="px-3.5 py-1.5 rounded-xl bg-[#6366f1] hover:bg-[#4f46e5] text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/20 cursor-pointer"
+            className="px-4 py-2 rounded-2xl accent-themed-btn text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-md shadow-indigo-500/20 cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Task</span>

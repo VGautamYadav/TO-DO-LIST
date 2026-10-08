@@ -19,6 +19,7 @@ import {
   onSnapshot,
   enableIndexedDbPersistence
 } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 
 // Firebase configuration using Vite environment variables or placeholder
 const firebaseConfig = {
@@ -47,11 +48,17 @@ try {
 
 export const auth = app ? getAuth(app) : null;
 export let db = null;
+export let storage = null;
 if (app) {
   try {
     db = getFirestore(app);
   } catch (err) {
     console.error("Firestore initialization failed. Please check your credentials or network.", err);
+  }
+  try {
+    storage = getStorage(app);
+  } catch (err) {
+    console.error("Storage initialization failed.", err);
   }
 }
 
@@ -129,5 +136,34 @@ export const firebaseAuthService = {
     if (!auth) throw new Error("Firebase Auth is not initialized.");
     const userCredential = await signInWithEmailLink(auth, email, url);
     return userCredential.user;
+  },
+
+  // Update Profile
+  async updateProfile(displayName, photoURL) {
+    if (!auth || !auth.currentUser) throw new Error("User not authenticated.");
+    const updateData = {};
+    if (displayName !== undefined) updateData.displayName = displayName;
+    if (photoURL !== undefined) updateData.photoURL = photoURL;
+    await updateProfile(auth.currentUser, updateData);
+    return auth.currentUser;
+  },
+
+  // Upload Profile Picture
+  async uploadProfilePicture(uid, file) {
+    if (!storage) throw new Error("Firebase Storage is not configured.");
+    const fileRef = ref(storage, `profilePictures/${uid}/profile.jpg`);
+    await uploadBytes(fileRef, file);
+    return await getDownloadURL(fileRef);
+  },
+
+  // Delete Profile Picture
+  async deleteProfilePicture(uid) {
+    if (!storage) return;
+    const fileRef = ref(storage, `profilePictures/${uid}/profile.jpg`);
+    try {
+      await deleteObject(fileRef);
+    } catch(err) {
+      console.warn("Could not delete profile picture or it didn't exist.", err);
+    }
   }
 };

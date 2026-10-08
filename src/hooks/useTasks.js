@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-import { STORAGE_KEYS } from '../utils/storage';
 import { INITIAL_TASKS } from '../data/initialData';
 import { DEFAULT_CATEGORIES } from '../data/categories';
 import { getNextRecurringDate, toISODateString } from '../utils/dateUtils';
@@ -12,11 +10,11 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, writeBatch } from 'fire
 export function useTasks() {
   const { currentUser } = useAuth();
 
-  // Local state
-  const [localTasks, setLocalTasks] = useLocalStorage(STORAGE_KEYS.TASKS, INITIAL_TASKS);
-  const [localCategories, setLocalCategories] = useLocalStorage(STORAGE_KEYS.CATEGORIES, DEFAULT_CATEGORIES);
+  // Local state (volatile)
+  const [localTasks, setLocalTasks] = useState(INITIAL_TASKS);
+  const [localCategories, setLocalCategories] = useState(DEFAULT_CATEGORIES);
   const DEFAULT_CUSTOM_TAGS = ['college', 'portfolio', 'coding', 'health', 'fitness', 'finance', 'shopping', 'urgent', 'exam'];
-  const [localCustomTags, setLocalCustomTags] = useLocalStorage(STORAGE_KEYS.CUSTOM_TAGS, DEFAULT_CUSTOM_TAGS);
+  const [localCustomTags, setLocalCustomTags] = useState(DEFAULT_CUSTOM_TAGS);
 
   // Firestore state
   const [firestoreTasks, setFirestoreTasks] = useState([]);
@@ -24,7 +22,7 @@ export function useTasks() {
   const [firestoreCustomTags, setFirestoreCustomTags] = useState(null);
 
 
-  const isAuthUser = Boolean(currentUser && !currentUser.isDemoAccount);
+  const isAuthUser = Boolean(currentUser);
   const [dbError, setDbError] = useState(null);
 
   // Computed state

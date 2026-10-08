@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { useSwipe } from './hooks/useSwipe';
 import { Sidebar } from './components/Sidebar';
 import { BottomNavigation } from './components/BottomNavigation';
 import { ToastContainer } from './components/Toast';
@@ -7,7 +8,7 @@ import { AddTaskModal } from './components/AddTaskModal';
 import { TaskDetails } from './components/TaskDetails';
 import { RescheduleModal } from './components/RescheduleModal';
 import { AuthModal } from './components/AuthModal';
-import { MigrationModal } from './components/MigrationModal';
+
 
 import { Home } from './pages/Home';
 import { Tasks } from './pages/Tasks';
@@ -34,6 +35,21 @@ const CONTENT_WIDTH_MAP = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const shouldReduceMotion = useReducedMotion();
+
+  const TABS = ['home', 'tasks', 'calendar', 'progress', 'settings'];
+
+  const swipeHandlers = useSwipe({
+    onSwipeLeft: () => {
+      const idx = TABS.indexOf(activeTab);
+      if (idx > -1 && idx < TABS.length - 1) setActiveTab(TABS[idx + 1]);
+    },
+    onSwipeRight: () => {
+      const idx = TABS.indexOf(activeTab);
+      if (idx > 0) setActiveTab(TABS[idx - 1]);
+    },
+    threshold: 50,
+  });
 
   // Auth Hook
   const { currentUser, logout, resetPassword } = useAuth();
@@ -128,6 +144,27 @@ export default function App() {
     }
   }, [settings.reminderSound]);
 
+  // Play subtle audio on task deletion
+  const playDeletionSound = useCallback(() => {
+    if (!settings.deletionSound) return;
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle'; // subtle sound
+      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    } catch {
+      // ignore
+    }
+  }, [settings.deletionSound]);
+
   // Task actions wrapped with Toasts
   const handleAddTask = (taskData) => {
     const created = addTask(taskData);
@@ -161,6 +198,7 @@ export default function App() {
     if (selectedTask?.id === taskId) {
       setSelectedTask(null);
     }
+    playDeletionSound();
     addToast('Task deleted', 'info');
   };
 
@@ -308,11 +346,8 @@ export default function App() {
       <header className="md:hidden sticky top-0 z-30 flex items-center justify-between px-3.5 py-2.5 bg-white/80 dark:bg-[#090A0F]/90 backdrop-blur-2xl border-b border-black/[0.06] dark:border-white/[0.08]">
         <div className="flex items-center gap-2">
           <div
-            style={{
-              background: `linear-gradient(135deg, ${accentConfig.hex}, ${accentConfig.hoverHex})`,
-              boxShadow: `0 4px 12px ${accentConfig.glow}`,
-            }}
-            className="w-7 h-7 rounded-xl text-white flex items-center justify-center font-bold text-xs shadow-md shrink-0"
+            style={{ boxShadow: `0 4px 12px ${accentConfig.glow}` }}
+            className={`w-7 h-7 rounded-xl bg-gradient-to-tr ${accentConfig.gradient} text-white flex items-center justify-center font-bold text-xs shrink-0`}
           >
             ✓
           </div>
@@ -374,15 +409,18 @@ export default function App() {
       />
 
       {/* Main Content Area with Page Transition Animation */}
-      <main className="flex-1 min-w-0 flex justify-center px-3 sm:px-6 md:px-8 py-3.5 sm:py-5 md:py-8 overflow-y-auto">
+      <main
+        {...swipeHandlers}
+        className="flex-1 min-w-0 flex justify-center px-3 sm:px-6 md:px-8 py-3.5 sm:py-5 md:py-8 overflow-y-auto"
+      >
         <div className={`w-full ${CONTENT_WIDTH_MAP[settings?.contentWidth] || 'max-w-4xl'} transition-[max-width] duration-300`}>
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
-              initial={{ opacity: 0, y: 8 }}
+              initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+              transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: 'easeOut' }}
               className="w-full"
             >
               {activeTab === 'home' && (
@@ -405,6 +443,7 @@ export default function App() {
                   onAddHabit={addHabit}
                   onDeleteHabit={deleteHabit}
                   onNavigateToTasks={() => setActiveTab('tasks')}
+                  accentColor={settings?.accentColor}
                 />
               )}
 
@@ -472,6 +511,7 @@ export default function App() {
                 <AuthPage
                   addToast={addToast}
                   onNavigateToHome={() => setActiveTab('home')}
+                  accentColor={settings?.accentColor}
                 />
               )}
             </motion.div>
@@ -531,10 +571,10 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         defaultMode={authModalMode}
         addToast={addToast}
+        accentColor={settings?.accentColor}
       />
 
-      {/* Migration Modal for existing legacy data */}
-      <MigrationModal />
+
     </div>
   );
 }

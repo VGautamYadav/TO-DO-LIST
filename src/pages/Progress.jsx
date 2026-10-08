@@ -153,20 +153,23 @@ export function Progress({ tasks, habits, categories }) {
       animate="visible"
       className="space-y-6 pb-24 md:pb-12"
     >
-      {/* Title */}
-      <motion.div variants={itemVariants}>
+      {/* Sticky Glass Header */}
+      <motion.header
+        variants={itemVariants}
+        className="sticky top-0 z-40 -mx-3 sm:-mx-6 md:-mx-8 px-3 sm:px-6 md:px-8 pt-2 pb-4 bg-white/70 dark:bg-[#08090d]/80 backdrop-blur-xl border-b border-black/5 dark:border-white/5 mb-4"
+      >
         <h2 className="text-2xl sm:text-3xl font-extrabold text-zinc-900 dark:text-zinc-100 tracking-tight">
           Productivity & Insights
         </h2>
         <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Your personal performance telemetry</p>
-      </motion.div>
+      </motion.header>
 
       {/* Top Stat Cards Grid */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {/* Completed Today */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl glass-card relative overflow-hidden dark:hover:border-emerald-500/30"
+          className="p-4 rounded-2xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow dark:hover:border-emerald-500/30"
         >
           <div className="w-7 h-7 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-2">
             <CheckCircle2 className="w-4 h-4 stroke-[2.2]" />
@@ -180,7 +183,7 @@ export function Progress({ tasks, habits, categories }) {
         {/* Completed This Week */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl glass-card relative overflow-hidden dark:hover:border-violet-500/30"
+          className="p-4 rounded-2xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow dark:hover:border-violet-500/30"
         >
           <div className="w-7 h-7 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 flex items-center justify-center mb-2">
             <Calendar className="w-4 h-4 stroke-[2.2]" />
@@ -194,7 +197,7 @@ export function Progress({ tasks, habits, categories }) {
         {/* Completed This Month */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl glass-card relative overflow-hidden dark:hover:border-indigo-500/30"
+          className="p-4 rounded-2xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow dark:hover:border-indigo-500/30"
         >
           <div className="w-7 h-7 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-2">
             <TrendingUp className="w-4 h-4 stroke-[2.2]" />
@@ -208,7 +211,7 @@ export function Progress({ tasks, habits, categories }) {
         {/* Completion Rate */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl glass-card relative overflow-hidden dark:hover:border-cyan-500/30"
+          className="p-4 rounded-2xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow dark:hover:border-cyan-500/30"
         >
           <div className="w-7 h-7 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center mb-2">
             <Target className="w-4 h-4 stroke-[2.2]" />
@@ -222,7 +225,7 @@ export function Progress({ tasks, habits, categories }) {
         {/* Current Streak */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl glass-card relative overflow-hidden dark:hover:border-amber-500/30"
+          className="p-4 rounded-2xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow dark:hover:border-amber-500/30"
         >
           <div className="w-7 h-7 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mb-2">
             <Flame className="w-4 h-4 stroke-[2.2] fill-amber-500/20" />
@@ -236,7 +239,7 @@ export function Progress({ tasks, habits, categories }) {
         {/* Longest Streak */}
         <motion.div
           whileHover={{ y: -2 }}
-          className="p-4 rounded-2xl glass-card relative overflow-hidden dark:hover:border-rose-500/30"
+          className="p-4 rounded-2xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow dark:hover:border-rose-500/30"
         >
           <div className="w-7 h-7 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-2">
             <Award className="w-4 h-4 stroke-[2.2]" />
@@ -249,7 +252,7 @@ export function Progress({ tasks, habits, categories }) {
       </motion.div>
 
       {/* Weekly Completion Bar Chart */}
-      <motion.div variants={itemVariants} className="p-5 md:p-6 rounded-3xl glass-card border border-black/[0.05] dark:border-white/[0.07]">
+      <motion.div variants={itemVariants} className="p-5 md:p-6 rounded-3xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.15)]">
         <div className="flex items-center justify-between mb-5">
           <h3 className="text-xs font-bold tracking-wider text-zinc-500 dark:text-zinc-400 uppercase flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-violet-600 dark:text-violet-400" />
@@ -273,7 +276,7 @@ export function Progress({ tasks, habits, categories }) {
                   {d.label}
                 </span>
 
-                <div className="flex-1 bg-zinc-100 dark:bg-zinc-800/60 h-7 rounded-xl overflow-hidden p-1 border border-black/[0.04] dark:border-white/5 flex items-center">
+                <div className="flex-1 bg-white/40 dark:bg-white/5 h-7 rounded-xl overflow-hidden p-1 border border-black/[0.04] dark:border-white/5 flex items-center">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${barWidth}%` }}
@@ -302,7 +305,7 @@ export function Progress({ tasks, habits, categories }) {
       </motion.div>
 
       {/* Category Breakdown Section */}
-      <motion.div variants={itemVariants} className="p-5 md:p-6 rounded-3xl glass-card border border-black/[0.05] dark:border-white/[0.07]">
+      <motion.div variants={itemVariants} className="p-5 md:p-6 rounded-3xl relative overflow-hidden bg-white/60 dark:bg-[#0f1118]/60 backdrop-blur-xl border border-black/5 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.15)]">
         <h3 className="text-xs font-bold tracking-wider text-zinc-500 dark:text-zinc-400 uppercase mb-4 flex items-center gap-2">
           <PieChart className="w-4 h-4 text-violet-600 dark:text-violet-400" />
           Category Distribution
@@ -325,7 +328,7 @@ export function Progress({ tasks, habits, categories }) {
                     </span>
                   </div>
 
-                  <div className="w-full bg-zinc-100 dark:bg-zinc-800/60 h-2 rounded-full overflow-hidden border border-black/[0.04] dark:border-white/5">
+                  <div className="w-full bg-white/40 dark:bg-white/5 h-2 rounded-full overflow-hidden border border-black/[0.04] dark:border-white/5">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${cat.percentage}%` }}

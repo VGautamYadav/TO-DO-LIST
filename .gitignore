@@ -7,20 +7,39 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-android/app/google-services.json
-node_modules
-dist
-dist-ssr
-*.local
+# Environment / secrets
 .env
 .env.*
 !.env.example
 
-# Editor directories and files
-.vscode/*
+# Dependencies / builds
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Android
+android/
+android/app/google-services.json
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# iOS
+ios/
+*.ipa
+*.xcarchive
+
+# Capacitor
+capacitor.config.local.*
+
+# IDE / OS
+.vscode/
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
+Thumbs.db
 *.suo
 *.ntvs*
 *.njsproj

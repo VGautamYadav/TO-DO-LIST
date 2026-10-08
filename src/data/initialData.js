@@ -280,6 +280,7 @@ export const INITIAL_SETTINGS = {
   contentWidth: 'default', // 'compact', 'default', 'wide', 'full'
   notificationsEnabled: true,
   reminderSound: true,
+  deletionSound: true,
   defaultPriority: 'medium',
   defaultCategory: 'personal',
   userDisplayName: 'Alex',

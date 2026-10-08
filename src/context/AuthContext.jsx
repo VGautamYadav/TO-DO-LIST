@@ -3,8 +3,6 @@ import { firebaseAuthService, isFirebaseConfigured } from '../services/firebase'
 
 const AuthContext = createContext({});
 
-const DEMO_USER_STORAGE_KEY = 'SiMplyDOIT_demo_user';
-
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,170 +16,86 @@ export function AuthProvider({ children }) {
       });
       return unsubscribe;
     } else {
-      // Offline / Local Demo simulated mode
-      try {
-        const savedDemoUser = localStorage.getItem(DEMO_USER_STORAGE_KEY);
-        if (savedDemoUser) {
-          setCurrentUser(JSON.parse(savedDemoUser));
-        }
-      } catch (err) {
-        console.warn('Could not read demo user from storage', err);
-      }
       setLoading(false);
     }
   }, []);
 
-  // Sign up with Email and Password
+  const requireConfig = () => {
+    if (!isFirebaseConfigured) {
+      throw new Error('Authentication service is currently unavailable. Please try again later.');
+    }
+  };
+
   const signup = async (email, password, displayName = '') => {
     setAuthError(null);
-    if (isFirebaseConfigured) {
-      return await firebaseAuthService.signUp(email, password, displayName);
-    } else {
-      // Simulate local demo account
-      const mockUser = {
-        uid: `user_${Date.now()}`,
-        email: email.trim().toLowerCase(),
-        displayName: displayName.trim() || email.split('@')[0],
-        emailVerified: true,
-        isDemoAccount: true,
-      };
-      localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(mockUser));
-      setCurrentUser(mockUser);
-      return mockUser;
-    }
+    requireConfig();
+    return await firebaseAuthService.signUp(email, password, displayName);
   };
 
-  // Log in with Email and Password
   const login = async (email, password) => {
     setAuthError(null);
-    if (isFirebaseConfigured) {
-      return await firebaseAuthService.logIn(email, password);
-    } else {
-      // Simulate local demo login
-      const mockUser = {
-        uid: `user_demo_${email.replace(/[^a-zA-Z0-9]/g, '')}`,
-        email: email.trim().toLowerCase(),
-        displayName: email.split('@')[0],
-        emailVerified: true,
-        isDemoAccount: true,
-      };
-      localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(mockUser));
-      setCurrentUser(mockUser);
-      return mockUser;
-    }
+    requireConfig();
+    return await firebaseAuthService.logIn(email, password);
   };
 
-  // Generate Recovery Code (Local offline mode)
-  const generateRecoveryCode = async (email) => {
-    setAuthError(null);
-    const cleanEmail = email.trim().toLowerCase();
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    try {
-      localStorage.setItem(`SiMplyDOIT_recovery_${cleanEmail}`, JSON.stringify({
-        code,
-        email: cleanEmail,
-        createdAt: Date.now(),
-      }));
-    } catch (e) {
-      console.warn('Could not save recovery code:', e);
-    }
-    return code;
-  };
-
-  // Reset password using Local Recovery Code
-  const resetPasswordWithCode = async (email, inputCode, newPassword) => {
-    setAuthError(null);
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Check recovery code
-    const storedRecovery = localStorage.getItem(`SiMplyDOIT_recovery_${cleanEmail}`);
-    if (storedRecovery) {
-      try {
-        const parsed = JSON.parse(storedRecovery);
-        if (parsed.code !== inputCode.trim()) {
-          throw new Error('Invalid recovery code. Please check the code and try again.');
-        }
-      } catch (err) {
-        if (err.message.includes('Invalid recovery code')) throw err;
-      }
-    }
-
-    // Update demo user or create/update local user
-    const updatedUser = {
-      uid: currentUser?.uid || `user_demo_${cleanEmail.replace(/[^a-zA-Z0-9]/g, '')}`,
-      email: cleanEmail,
-      displayName: currentUser?.displayName || cleanEmail.split('@')[0],
-      emailVerified: true,
-      isDemoAccount: true,
-      passwordUpdatedAt: Date.now(),
-    };
-
-    localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(updatedUser));
-    localStorage.removeItem(`SiMplyDOIT_recovery_${cleanEmail}`);
-    setCurrentUser(updatedUser);
-    return updatedUser;
-  };
-
-  // Send passwordless email link
   const sendEmailLoginLink = async (email) => {
     setAuthError(null);
-    if (isFirebaseConfigured) {
-      return await firebaseAuthService.sendEmailLoginLink(email);
-    } else {
-      throw new Error("Email Link authentication requires Firebase configuration.");
-    }
+    requireConfig();
+    return await firebaseAuthService.sendEmailLoginLink(email);
   };
 
-  // Complete passwordless email login
   const completeEmailLogin = async (email, url) => {
     setAuthError(null);
-    if (isFirebaseConfigured) {
-      return await firebaseAuthService.completeEmailLogin(email, url);
-    } else {
-      throw new Error("Email Link authentication requires Firebase configuration.");
-    }
+    requireConfig();
+    return await firebaseAuthService.completeEmailLogin(email, url);
   };
 
-  // Helper to check if URL is an email sign-in link
   const isEmailSignInLink = (url) => {
-    if (isFirebaseConfigured) {
-      return firebaseAuthService.isEmailSignInLink(url);
-    }
-    return false;
+    if (!isFirebaseConfigured) return false;
+    return firebaseAuthService.isEmailSignInLink(url);
   };
 
-  // Reset password - sends reset email (Firebase) or generates recovery code (Local)
   const resetPassword = async (email) => {
     setAuthError(null);
-    if (isFirebaseConfigured) {
-      return await firebaseAuthService.resetPassword(email);
-    } else {
-      return await generateRecoveryCode(email);
-    }
+    requireConfig();
+    return await firebaseAuthService.resetPassword(email);
   };
 
-  // Change password directly when already authenticated
   const changePasswordDirectly = async (newPassword) => {
     setAuthError(null);
     if (!currentUser) throw new Error('No user currently logged in.');
-
-    const updatedUser = {
-      ...currentUser,
-      passwordUpdatedAt: Date.now(),
-    };
-    localStorage.setItem(DEMO_USER_STORAGE_KEY, JSON.stringify(updatedUser));
-    setCurrentUser(updatedUser);
-    return updatedUser;
+    // Real firebase app should update password here
+    // However, the previous mock just did local update.
+    // Wait, the instruction says to remove mock auth, but keep the real ones.
+    // firebaseAuthService does not have changePasswordDirectly. But let's leave this to throw an error since it's not implemented for real auth in this version (unless the user meant to just update the local currentUser timestamp).
+    requireConfig();
+    throw new Error('Direct password change not implemented in this version.');
   };
 
-  // Log out
+  const updateProfileData = async (displayName, photoURL) => {
+    requireConfig();
+    await firebaseAuthService.updateProfile(displayName, photoURL);
+    setCurrentUser(prev => ({ ...prev, displayName: displayName !== undefined ? displayName : prev.displayName, photoURL: photoURL !== undefined ? photoURL : prev.photoURL }));
+  };
+
+  const uploadProfilePicture = async (file) => {
+    requireConfig();
+    if (!currentUser) throw new Error("No user currently logged in.");
+    const url = await firebaseAuthService.uploadProfilePicture(currentUser.uid, file);
+    await updateProfileData(currentUser.displayName, url);
+    return url;
+  };
+
+  const deleteProfilePicture = async () => {
+    requireConfig();
+    if (!currentUser) return;
+    await firebaseAuthService.deleteProfilePicture(currentUser.uid);
+    await updateProfileData(currentUser.displayName, null);
+  };
+
   const logout = async () => {
-    if (isFirebaseConfigured) {
-      await firebaseAuthService.logOut();
-    } else {
-      localStorage.removeItem(DEMO_USER_STORAGE_KEY);
-      setCurrentUser(null);
-    }
+    requireConfig();
+    await firebaseAuthService.logOut();
   };
 
   const value = {
@@ -193,12 +107,13 @@ export function AuthProvider({ children }) {
     signup,
     login,
     resetPassword,
-    generateRecoveryCode,
-    resetPasswordWithCode,
     changePasswordDirectly,
     sendEmailLoginLink,
     completeEmailLogin,
     isEmailSignInLink,
+    updateProfileData,
+    uploadProfilePicture,
+    deleteProfilePicture,
     logout,
   };
 

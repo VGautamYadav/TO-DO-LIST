@@ -23,15 +23,16 @@ import {
   Copy
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getAccentConfig } from '../utils/themeUtils';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
-export function AuthPage({ addToast, onNavigateToHome }) {
+export function AuthPage({ addToast, onNavigateToHome, accentColor = 'violet' }) {
+  const accentConfig = getAccentConfig(accentColor);
   const {
     currentUser,
     login,
     signup,
     resetPassword,
-    resetPasswordWithCode,
     changePasswordDirectly,
     isFirebaseConfigured,
     sendEmailLoginLink,
@@ -50,9 +51,6 @@ export function AuthPage({ addToast, onNavigateToHome }) {
   const [rememberMe, setRememberMe] = useState(true);
 
   // Recovery code state
-  const [generatedCode, setGeneratedCode] = useState('');
-  const [recoveryCodeInput, setRecoveryCodeInput] = useState('');
-  const [copiedCode, setCopiedCode] = useState(false);
 
   // Direct password update state for logged-in user
   const [showDirectPasswordForm, setShowDirectPasswordForm] = useState(false);
@@ -103,19 +101,9 @@ export function AuthPage({ addToast, onNavigateToHome }) {
   const handleResetPassword = async () => {
     try {
       setLoading(true);
-      if (isFirebaseConfigured) {
-        await resetPassword(email);
-        setMode('reset_success');
-        if (addToast) addToast(`Password reset link sent to ${email}`, 'success');
-      } else {
-        // Local mode: generate recovery code
-        const code = await resetPassword(email);
-        console.log(`\n\n=== MOCK EMAIL SERVICE ===\nPassword recovery code for ${email}:\n${code}\n==========================\n\n`);
-        setGeneratedCode(code);
-        setRecoveryCodeInput('');
-        setMode('recovery_reset');
-        if (addToast) addToast('Recovery code sent to your email!', 'success');
-      }
+      await resetPassword(email);
+      setMode('reset_success');
+      if (typeof addToast !== 'undefined') addToast(`Password reset link sent to ${email}`, 'success');
     } catch (err) {
       console.error('Password reset error:', err);
       const code = err.code || '';
@@ -124,7 +112,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
       } else if (code === 'auth/invalid-email') {
         setError('Please provide a valid email address format.');
       } else {
-        setError(err.message || 'Failed to generate password reset. Try again.');
+        setError(err.message || 'Failed to send password reset. Try again.');
       }
     } finally {
       setLoading(false);
@@ -157,34 +145,6 @@ export function AuthPage({ addToast, onNavigateToHome }) {
     // Forgot password flow - Step 1: Input email
     if (mode === 'forgot') {
       setMode('forgot_options');
-      return;
-    }
-
-    // Recovery code reset submission
-    if (mode === 'recovery_reset') {
-      if (!recoveryCodeInput.trim()) {
-        setError('Please enter the 6-digit recovery code.');
-        return;
-      }
-      if (!password || password.length < 6) {
-        setError('New password must be at least 6 characters.');
-        return;
-      }
-      if (password !== confirmPassword) {
-        setError('Passwords do not match.');
-        return;
-      }
-
-      try {
-        setLoading(true);
-        await resetPasswordWithCode(email, recoveryCodeInput, password);
-        if (addToast) addToast('Password updated successfully! You are now logged in.', 'success');
-        if (onNavigateToHome) onNavigateToHome();
-      } catch (err) {
-        setError(err.message || 'Failed to update password. Please check your recovery code.');
-      } finally {
-        setLoading(false);
-      }
       return;
     }
 
@@ -341,11 +301,17 @@ export function AuthPage({ addToast, onNavigateToHome }) {
           animate={{ opacity: 1, y: 0 }}
           className="p-6 md:p-8 rounded-3xl glass-card border border-slate-200/80 dark:border-white/10 shadow-glass relative overflow-hidden"
         >
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
+          <div
+            style={{ backgroundColor: accentConfig.bgTint }}
+            className="absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl pointer-events-none -z-10"
+          />
 
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-3xl bg-emerald-600 text-white flex items-center justify-center font-black text-2xl uppercase shadow-lg shadow-emerald-600/20">
+              <div
+                style={{ backgroundColor: accentConfig.hex, boxShadow: `0 10px 15px -3px ${accentConfig.glow}` }}
+                className="w-16 h-16 rounded-3xl text-white flex items-center justify-center font-black text-2xl uppercase"
+              >
                 {currentUser.displayName ? currentUser.displayName[0] : (currentUser.email ? currentUser.email[0] : 'U')}
               </div>
               <div>
@@ -353,7 +319,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                   <h3 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
                     {currentUser.displayName || 'Personal Account'}
                   </h3>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-500/15 border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <span className={`px-2 py-0.5 rounded-full border text-[10px] font-semibold flex items-center gap-1 ${accentConfig.activeCard}`}>
                     <Cloud className="w-2.5 h-2.5" /> Synced
                   </span>
                 </div>
@@ -383,18 +349,21 @@ export function AuthPage({ addToast, onNavigateToHome }) {
         {/* Multi-Device Sync Card */}
         <div className="p-6 rounded-3xl glass-card border border-black/[0.06] dark:border-white/[0.08] shadow-glass space-y-4">
           <div className="flex items-center gap-2">
-            <Cloud className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <Cloud className={`w-4 h-4 ${accentConfig.activeText}`} />
             <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-900 dark:text-zinc-200">
               Multi-Device Access
             </h3>
           </div>
           <p className="text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-            Your tasks, habits, categories, and calendar entries are attached to your account. Open SiMplyDOIT on any phone, tablet, or browser, and log in with <strong className="text-emerald-600 dark:text-emerald-400">{currentUser.email}</strong> to access your workspace.
+            Your tasks, habits, categories, and calendar entries are attached to your account. Open SiMplyDOIT on any phone, tablet, or browser, and log in with <strong className={accentConfig.activeText}>{currentUser.email}</strong> to access your workspace.
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-900/50 border border-black/[0.05] dark:border-white/5 flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <div
+                style={{ backgroundColor: accentConfig.bgTint }}
+                className={`p-2.5 rounded-xl ${accentConfig.activeText}`}
+              >
                 <Laptop className="w-5 h-5" />
               </div>
               <div>
@@ -507,7 +476,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                     <button
                       type="submit"
                       disabled={directPasswordLoading}
-                      className="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-sm flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-70"
+                      className={`px-4 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all disabled:opacity-70 ${accentConfig.btnClass}`}
                     >
                       {directPasswordLoading ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -550,15 +519,19 @@ export function AuthPage({ addToast, onNavigateToHome }) {
           className="relative bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl border border-slate-200/80 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden p-6 sm:p-10"
         >
           {/* Top Decorative Glow */}
-          <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-emerald-500/15 via-emerald-500/5 to-transparent pointer-events-none -z-10" />
+          <div
+            style={{ background: `linear-gradient(to bottom, ${accentConfig.bgTint}, transparent)` }}
+            className="absolute top-0 inset-x-0 h-32 pointer-events-none -z-10"
+          />
 
           {/* Header Title */}
           <div className="text-center mb-8">
             <motion.div
               whileHover={{ rotate: 10, scale: 1.05 }}
-              className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/25 mb-4"
+              style={{ boxShadow: `0 10px 15px -3px ${accentConfig.glow}` }}
+              className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr ${accentConfig.gradient} text-white mb-4`}
             >
-              {mode === 'forgot' || mode === 'forgot_options' || mode === 'reset_success' || mode === 'recovery_reset' ? (
+              {mode === 'forgot' || mode === 'forgot_options' || mode === 'reset_success' ? (
                 <KeyRound className="w-7 h-7 stroke-[2.2]" />
               ) : (
                 <CheckCircle2 className="w-7 h-7 stroke-[2.2]" />
@@ -570,7 +543,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
               {mode === 'signup' && 'Create Your Account'}
               {mode === 'forgot' && 'Reset Your Password'}
               {mode === 'forgot_options' && 'Choose Recovery Method'}
-              {mode === 'recovery_reset' && 'Enter Recovery Code'}
+
               {mode === 'reset_success' && 'Check Your Email'}
               {mode === 'passwordless' && 'Sign in with Email Link'}
               {mode === 'passwordless_sent' && 'Check Your Email'}
@@ -582,7 +555,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
               {mode === 'signup' && 'Sign up to backup and synchronize your tasks in real time.'}
               {mode === 'forgot' && 'Enter your registered email address to initiate password recovery.'}
               {mode === 'forgot_options' && 'How would you like to access your account?'}
-              {mode === 'recovery_reset' && 'Use your 6-digit recovery code to set your new password.'}
+
               {mode === 'reset_success' && `We've sent a password reset link to ${email}.`}
               {mode === 'passwordless' && 'Enter your email to receive a secure passwordless sign-in link.'}
               {mode === 'passwordless_sent' && `We've sent a secure sign-in link to ${email}.`}
@@ -598,7 +571,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                 onClick={() => handleSwitchMode('login')}
                 className={`py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
                   mode === 'login'
-                    ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-700 ${accentConfig.activeText} shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -609,7 +582,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                 onClick={() => handleSwitchMode('signup')}
                 className={`py-2.5 text-xs sm:text-sm font-bold rounded-xl transition-all cursor-pointer ${
                   mode === 'signup'
-                    ? 'bg-white dark:bg-zinc-700 text-emerald-600 dark:text-emerald-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-700 ${accentConfig.activeText} shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -634,115 +607,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
           </AnimatePresence>
 
           {/* Recovery Code Reset Form (Local Mode) */}
-          {mode === 'recovery_reset' ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Secure Notification Banner */}
-              <div className="p-3.5 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-xs text-center">
-                We've sent a 6-digit recovery code to <strong>{email}</strong>.
-                Please check your inbox (and spam folder) and enter the code below.
-              </div>
-
-              {/* Recovery Code Input */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                  6-Digit Recovery Code
-                </label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    placeholder="e.g. 849201"
-                    value={recoveryCodeInput}
-                    onChange={(e) => setRecoveryCodeInput(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm font-mono tracking-wider text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm New Password */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={loading}
-                className="w-full mt-3 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating password...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Save Password & Sign In</span>
-                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                  </>
-                )}
-              </motion.button>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('login')}
-                  className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors cursor-pointer"
-                >
-                  ← Back to Sign In
-                </button>
-              </div>
-            </form>
-          ) : mode === 'forgot_options' ? (
+          {mode === 'forgot_options' ? (
             <div className="space-y-4 py-2">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-1">What do you want to do?</h3>
@@ -772,11 +637,13 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                 onClick={handleContinueWithoutReset}
                 className="w-full p-4 rounded-2xl border border-black/[0.05] dark:border-white/10 bg-white hover:bg-zinc-50 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-left transition-all cursor-pointer flex items-center gap-4 group disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <div className="p-3 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
+                <div style={{ backgroundColor: accentConfig.bgTint }}
+                className={`p-3 rounded-xl ${accentConfig.activeText}`}>
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Continue Without Reset</h4>
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 transition-colors"
+                  style={{ color: accentConfig.hex }}>Continue Without Reset</h4>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Sign in securely without changing your password</p>
                 </div>
               </button>
@@ -793,9 +660,9 @@ export function AuthPage({ addToast, onNavigateToHome }) {
             </div>
           ) : (mode === 'reset_success' || mode === 'passwordless_sent') ? (
             <div className="space-y-5 text-center py-2">
-              <div className="p-5 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-xs space-y-2 text-left">
+              <div className={`p-5 rounded-2xl border text-xs space-y-2 text-left ${accentConfig.activeCard}`}>
                 <div className="flex items-center gap-2 font-bold text-sm">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 ${accentConfig.activeText}" />
                   <span>{mode === 'passwordless_sent' ? 'Sign-In Link Sent!' : 'Password Reset Email Sent!'}</span>
                 </div>
                 <p className="text-zinc-600 dark:text-zinc-300 leading-relaxed">
@@ -810,7 +677,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                 <button
                   type="button"
                   onClick={() => handleSwitchMode('login')}
-                  className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 transition-all cursor-pointer"
+                  className={`w-full py-3.5 rounded-2xl font-bold text-sm transition-all cursor-pointer ${accentConfig.btnClass}`}
                 >
                   Return to Sign In
                 </button>
@@ -842,7 +709,8 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                       placeholder="Alex Smith"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                      className="w-full pl-10 pr-4 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-0 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 2px ${accentConfig.hex}` }}
                     />
                   </div>
                 </div>
@@ -861,7 +729,8 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-0 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 2px ${accentConfig.hex}` }}
                   />
                 </div>
               </div>
@@ -878,7 +747,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                         <button
                           type="button"
                           onClick={() => handleSwitchMode('forgot')}
-                          className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                          className="text-xs font-semibold ${accentConfig.activeText} hover:underline cursor-pointer"
                         >
                           Forgot password?
                         </button>
@@ -892,7 +761,8 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-10 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                        className="w-full pl-10 pr-10 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-0 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 2px ${accentConfig.hex}` }}
                       />
                       <button
                         type="button"
@@ -918,7 +788,8 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                           placeholder="••••••••"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-10 pr-10 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all"
+                          className="w-full pl-10 pr-10 py-3 rounded-2xl bg-zinc-100/80 dark:bg-zinc-800/80 border border-black/[0.05] dark:border-white/10 text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-0 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 2px ${accentConfig.hex}` }}
                         />
                         <button
                           type="button"
@@ -941,7 +812,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                     id="rememberDevice"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 cursor-pointer"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 cursor-pointer"
                   />
                   <label htmlFor="rememberDevice" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
                     Remember me on this device
@@ -955,7 +826,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full mt-3 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                className={`w-full mt-3 py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer ${accentConfig.btnClass}`}
               >
                 {loading ? (
                   <>
@@ -990,12 +861,12 @@ export function AuthPage({ addToast, onNavigateToHome }) {
               )}
 
               {/* Passwordless Alternative */}
-              {mode === 'login' && isFirebaseConfigured && (
+              {mode === 'login' && (
                 <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={() => handleSwitchMode('passwordless')}
-                    className="text-xs font-semibold text-emerald-600 hover:text-emerald-500 transition-colors cursor-pointer"
+                    className="text-xs font-semibold ${accentConfig.activeText} hover:opacity-80 transition-colors cursor-pointer"
                   >
                     Or sign in with an Email Link instead
                   </button>
@@ -1006,7 +877,7 @@ export function AuthPage({ addToast, onNavigateToHome }) {
 
           {/* Footer Security Badge */}
           <div className="mt-8 pt-4 border-t border-slate-100 dark:border-white/5 flex items-center justify-center gap-2 text-xs text-zinc-400 dark:text-zinc-500">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <ShieldCheck className="w-4 h-4 ${accentConfig.activeText}" />
             <span>Encrypted cloud authentication & password protection</span>
           </div>
         </motion.div>

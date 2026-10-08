@@ -19,9 +19,11 @@ import {
   Check
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getAccentConfig } from '../utils/themeUtils';
 
-export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) {
-  const { login, signup, resetPassword, resetPasswordWithCode, isFirebaseConfigured, sendEmailLoginLink } = useAuth();
+export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast, accentColor = 'violet' }) {
+  const accentConfig = getAccentConfig(accentColor);
+  const { login, signup, resetPassword, isFirebaseConfigured, sendEmailLoginLink } = useAuth();
 
   const [mode, setMode] = useState(defaultMode); // 'login' | 'signup' | 'forgot' | 'recovery_reset' | 'reset_success'
   const [email, setEmail] = useState('');
@@ -33,9 +35,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
   const [rememberMe, setRememberMe] = useState(true);
 
   // Recovery code state for local offline reset
-  const [generatedCode, setGeneratedCode] = useState('');
-  const [recoveryCodeInput, setRecoveryCodeInput] = useState('');
-  const [copiedCode, setCopiedCode] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -57,19 +56,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
   const handleResetPassword = async () => {
     try {
       setLoading(true);
-      if (isFirebaseConfigured) {
-        await resetPassword(email);
-        setMode('reset_success');
-        if (addToast) addToast(`Password reset link sent to ${email}`, 'success');
-      } else {
-        // Local mode: generate recovery code
-        const code = await resetPassword(email);
-        console.log(`\n\n=== MOCK EMAIL SERVICE ===\nPassword recovery code for ${email}:\n${code}\n==========================\n\n`);
-        setGeneratedCode(code);
-        setRecoveryCodeInput('');
-        setMode('recovery_reset');
-        if (addToast) addToast('Recovery code sent to your email!', 'success');
-      }
+      await resetPassword(email);
+      setMode('reset_success');
+      if (typeof addToast !== 'undefined') addToast(`Password reset link sent to ${email}`, 'success');
     } catch (err) {
       console.error('Password reset error:', err);
       const code = err.code || '';
@@ -78,7 +67,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
       } else if (code === 'auth/invalid-email') {
         setError('Please provide a valid email address format.');
       } else {
-        setError(err.message || 'Failed to generate password reset. Try again.');
+        setError(err.message || 'Failed to send password reset. Try again.');
       }
     } finally {
       setLoading(false);
@@ -239,7 +228,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
         className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-black/[0.08] dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden z-10"
       >
         {/* Top Header Background Glow */}
-        <div className="absolute top-0 inset-x-0 h-28 bg-gradient-to-br from-indigo-500/15 via-indigo-500/5 to-transparent pointer-events-none" />
+        <div style={{ background: `linear-gradient(to bottom, ${accentConfig.bgTint}, transparent)` }}
+          className="absolute top-0 inset-x-0 h-28 pointer-events-none" />
 
         {/* Close Button */}
         <button
@@ -253,8 +243,11 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
         <div className="p-6 sm:p-8 relative">
           {/* Brand & Title */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 mb-3">
-              {mode === 'forgot' || mode === 'forgot_options' || mode === 'reset_success' || mode === 'recovery_reset' ? (
+            <div
+              style={{ boxShadow: `0 10px 15px -3px ${accentConfig.glow}` }}
+              className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr ${accentConfig.gradient} text-white mb-3`}
+            >
+              {mode === 'forgot' || mode === 'forgot_options' || mode === 'reset_success' ? (
                 <KeyRound className="w-6 h-6 stroke-[2.2]" />
               ) : (
                 <CheckCircle2 className="w-6 h-6 stroke-[2.2]" />
@@ -266,7 +259,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
               {mode === 'signup' && 'Create Account'}
               {mode === 'forgot' && 'Reset Password'}
               {mode === 'forgot_options' && 'Choose Recovery Method'}
-              {mode === 'recovery_reset' && 'Set New Password'}
+
               {mode === 'reset_success' && 'Reset Link Sent!'}
               {mode === 'passwordless' && 'Sign in with Email Link'}
               {mode === 'passwordless_sent' && 'Check Your Email'}
@@ -277,7 +270,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
               {mode === 'signup' && 'Sign up to safely save and sync your tasks everywhere.'}
               {mode === 'forgot' && 'Enter your email address to initiate password recovery.'}
               {mode === 'forgot_options' && 'How would you like to access your account?'}
-              {mode === 'recovery_reset' && 'Enter your recovery code and choose a new password.'}
+
               {mode === 'reset_success' && `We've sent a password reset link to ${email}.`}
               {mode === 'passwordless' && 'Enter your email to receive a secure passwordless sign-in link.'}
               {mode === 'passwordless_sent' && `We've sent a secure sign-in link to ${email}.`}
@@ -292,7 +285,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                 onClick={() => handleSwitchMode('login')}
                 className={`py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                   mode === 'login'
-                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-700 ${accentConfig.activeText} shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -303,7 +296,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                 onClick={() => handleSwitchMode('signup')}
                 className={`py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
                   mode === 'signup'
-                    ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    ? 'bg-white dark:bg-zinc-700 ${accentConfig.activeText} shadow-sm'
                     : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200'
                 }`}
               >
@@ -328,115 +321,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
           </AnimatePresence>
 
           {/* Mode: Recovery Reset (Local 6-digit code flow) */}
-          {mode === 'recovery_reset' ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Secure Notification Banner */}
-              <div className="p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-xs text-center">
-                We've sent a 6-digit recovery code to <strong>{email}</strong>.
-                Please check your inbox and enter the code below.
-              </div>
-
-              {/* Recovery Code Input */}
-              <div>
-                <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
-                  6-Digit Recovery Code
-                </label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type="text"
-                    required
-                    maxLength={6}
-                    placeholder="e.g. 849201"
-                    value={recoveryCodeInput}
-                    onChange={(e) => setRecoveryCodeInput(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm font-mono tracking-wider text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* New Password */}
-              <div>
-                <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
-                  New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm New Password */}
-              <div>
-                <label className="block text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider mb-1.5">
-                  Confirm New Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit button */}
-              <motion.button
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={loading}
-                className="w-full mt-2 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Updating password...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Save Password & Sign In</span>
-                    <ArrowRight className="w-4 h-4 stroke-[2.5]" />
-                  </>
-                )}
-              </motion.button>
-
-              <div className="text-center pt-2">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchMode('login')}
-                  className="text-xs font-medium text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 transition-colors cursor-pointer"
-                >
-                  ← Back to Sign In
-                </button>
-              </div>
-            </form>
-          ) : mode === 'forgot_options' ? (
+          {mode === 'forgot_options' ? (
             <div className="space-y-4 py-2">
               <div className="text-center mb-6">
                 <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-1">What do you want to do?</h3>
@@ -466,11 +351,13 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                 onClick={handleContinueWithoutReset}
                 className="w-full p-4 rounded-2xl border border-black/[0.05] dark:border-white/10 bg-white hover:bg-zinc-50 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-left transition-all cursor-pointer flex items-center gap-4 group disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <div className="p-3 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400">
+                <div style={{ backgroundColor: accentConfig.bgTint }}
+                className={`p-3 rounded-xl ${accentConfig.activeText}`}>
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Continue Without Reset</h4>
+                  <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 transition-colors"
+                  style={{ color: accentConfig.hex }}>Continue Without Reset</h4>
                   <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">Sign in securely without changing your password</p>
                 </div>
               </button>
@@ -487,9 +374,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
             </div>
           ) : (mode === 'reset_success' || mode === 'passwordless_sent') ? (
             <div className="space-y-4 text-center py-2">
-              <div className="p-4 rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-indigo-800 dark:text-indigo-300 text-xs space-y-2 text-left">
+              <div className={`p-4 rounded-2xl border text-xs space-y-2 text-left ${accentConfig.activeCard}`}>
                 <div className="flex items-center gap-2 font-semibold">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <CheckCircle2 className="w-4 h-4 ${accentConfig.activeText}" />
                   <span>{mode === 'passwordless_sent' ? 'Sign-In Link Sent!' : 'Check your inbox'}</span>
                 </div>
                 <p className="text-zinc-600 dark:text-zinc-300">
@@ -504,7 +391,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                 <button
                   type="button"
                   onClick={() => handleSwitchMode('login')}
-                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/20 transition-all cursor-pointer"
+                  className={`w-full py-3 rounded-2xl font-semibold text-sm transition-all cursor-pointer ${accentConfig.btnClass}`}
                 >
                   Return to Sign In
                 </button>
@@ -535,7 +422,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                       placeholder="e.g. Alex Smith"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 1px ${accentConfig.hex}` }}
                     />
                   </div>
                 </div>
@@ -554,7 +442,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                     placeholder="name@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 1px ${accentConfig.hex}` }}
                   />
                 </div>
               </div>
@@ -571,7 +460,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                         <button
                           type="button"
                           onClick={() => handleSwitchMode('forgot')}
-                          className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                          className="text-xs font-semibold ${accentConfig.activeText} hover:underline cursor-pointer"
                         >
                           Forgot password?
                         </button>
@@ -585,7 +474,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
+                        className="w-full pl-10 pr-10 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 1px ${accentConfig.hex}` }}
                       />
                       <button
                         type="button"
@@ -611,7 +501,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                           placeholder="••••••••"
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full pl-10 pr-10 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-indigo-500 transition-all"
+                          className="w-full pl-10 pr-10 py-2.5 rounded-2xl glass-input text-sm text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 focus:border-transparent transition-all"
+                    style={{ '--tw-ring-color': accentConfig.hex, '--tw-ring-offset-width': '0px', boxShadow: `0 0 0 1px ${accentConfig.hex}` }}
                         />
                         <button
                           type="button"
@@ -634,7 +525,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                     id="rememberMe"
                     checked={rememberMe}
                     onChange={(e) => setRememberMe(e.target.checked)}
-                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 cursor-pointer"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 cursor-pointer"
                   />
                   <label htmlFor="rememberMe" className="text-xs text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
                     Remember me on this device
@@ -648,7 +539,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
                 whileTap={{ scale: 0.98 }}
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                className={`w-full mt-2 py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer ${accentConfig.btnClass}`}
               >
                 {loading ? (
                   <>
@@ -682,12 +573,12 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
               )}
 
               {/* Passwordless Alternative */}
-              {mode === 'login' && isFirebaseConfigured && (
+              {mode === 'login' && (
                 <div className="text-center pt-2">
                   <button
                     type="button"
                     onClick={() => handleSwitchMode('passwordless')}
-                    className="text-xs font-semibold text-indigo-600 hover:text-indigo-500 transition-colors cursor-pointer"
+                    className="text-xs font-semibold ${accentConfig.activeText} hover:opacity-80 transition-colors cursor-pointer"
                   >
                     Or sign in with an Email Link instead
                   </button>
@@ -698,7 +589,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'login', addToast }) 
 
           {/* Footer Security Badge */}
           <div className="mt-6 pt-4 border-t border-black/[0.05] dark:border-white/5 flex items-center justify-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+            <ShieldCheck className="w-3.5 h-3.5 ${accentConfig.activeText}" />
             <span>Encrypted & secure password authentication</span>
           </div>
         </div>

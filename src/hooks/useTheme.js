@@ -1,19 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-import { STORAGE_KEYS } from '../utils/storage';
 import { INITIAL_SETTINGS } from '../data/initialData';
 import { useAuth } from '../context/AuthContext';
 import { db } from '../services/firebase';
 import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { STORAGE_KEYS } from '../utils/storage';
 
 export function useTheme() {
   const { currentUser } = useAuth();
-  const [localSettings, setLocalSettings] = useLocalStorage(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+  const [memorySettings, setMemorySettings] = useState(INITIAL_SETTINGS);
   const [firestoreSettings, setFirestoreSettings] = useState(null);
 
-  const isAuthUser = Boolean(currentUser && !currentUser.isDemoAccount);
+  const isAuthUser = Boolean(currentUser);
   const [dbError, setDbError] = useState(null);
-  const settings = isAuthUser ? (firestoreSettings || INITIAL_SETTINGS) : localSettings;
+  const settings = isAuthUser ? (firestoreSettings || INITIAL_SETTINGS) : memorySettings;
 
   useEffect(() => {
     if (!isAuthUser) {
@@ -26,6 +25,20 @@ export function useTheme() {
       return;
     }
     setDbError(null);
+
+    // One-time migration of legacy localStorage settings
+    try {
+      const legacyRaw = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+      if (legacyRaw) {
+        const legacySettings = JSON.parse(legacyRaw);
+        localStorage.removeItem(STORAGE_KEYS.SETTINGS);
+        // Write to Firestore immediately. onSnapshot will pick it up.
+        setDoc(doc(db, `users/${currentUser.uid}`), { settings: legacySettings }, { merge: true }).catch(console.error);
+      }
+    } catch (e) {
+      console.error("Migration error:", e);
+      localStorage.removeItem(STORAGE_KEYS.SETTINGS); // clear corrupted
+    }
     const unsubscribe = onSnapshot(doc(db, `users/${currentUser.uid}`), (docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -44,7 +57,7 @@ export function useTheme() {
     const newSettings = typeof updater === 'function' ? updater(settings) : updater;
 
     if (!isAuthUser) {
-      setLocalSettings(newSettings);
+      setMemorySettings(newSettings);
       return;
     }
 

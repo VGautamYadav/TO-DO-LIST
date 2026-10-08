@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useLocalStorage } from './useLocalStorage';
-import { STORAGE_KEYS } from '../utils/storage';
 import { INITIAL_HABITS } from '../data/initialData';
 import { toISODateString } from '../utils/dateUtils';
 import { useAuth } from '../context/AuthContext';
@@ -9,12 +7,12 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firesto
 
 export function useHabits() {
   const { currentUser } = useAuth();
-  const [localHabits, setLocalHabits] = useLocalStorage(STORAGE_KEYS.HABITS, INITIAL_HABITS);
+  const [localHabits, setLocalHabits] = useState(INITIAL_HABITS);
   const [firestoreHabits, setFirestoreHabits] = useState([]);
 
 
   // Choose source of truth
-  const isAuthUser = Boolean(currentUser && !currentUser.isDemoAccount);
+  const isAuthUser = Boolean(currentUser);
   const [dbError, setDbError] = useState(null);
   const habits = isAuthUser ? firestoreHabits : localHabits;
 

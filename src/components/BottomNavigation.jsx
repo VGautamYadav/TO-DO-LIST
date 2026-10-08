@@ -12,8 +12,8 @@ export function BottomNavigation({
   const accentConfig = getAccentConfig(accentColor);
 
   return (
-    <div className="md:hidden fixed bottom-3 left-4 right-4 z-40">
-      <div className="max-w-md mx-auto rounded-3xl glass-dropdown border border-black/[0.08] dark:border-white/10 shadow-2xl p-1.5 flex items-center justify-around dark:bg-[#0f1118]/95">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-4 pb-[max(env(safe-area-inset-bottom),1rem)]">
+      <div className="max-w-md mx-auto rounded-full bg-white/70 dark:bg-[#0f1118]/70 backdrop-blur-xl border border-black/5 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] p-1.5 flex items-center justify-around">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
@@ -30,7 +30,7 @@ export function BottomNavigation({
                 color: accentConfig.hex,
                 boxShadow: `0 0 14px ${accentConfig.glow}`,
               } : undefined}
-              className={`relative flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-2xl transition-all duration-200 cursor-pointer ${
+              className={`relative flex flex-col items-center justify-center flex-1 py-2 px-2 min-h-[56px] rounded-full transition-all duration-200 cursor-pointer ${
                 isActive
                   ? 'font-bold'
                   : 'text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
@@ -39,7 +39,7 @@ export function BottomNavigation({
               <div className="relative">
                 <Icon
                   style={{ color: isActive ? accentConfig.hex : undefined }}
-                  className={`w-4.5 h-4.5 transition-transform ${isActive ? 'scale-105 stroke-[2.4]' : 'stroke-[1.8]'}`}
+                  className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 stroke-[2.4]' : 'stroke-[1.8]'}`}
                 />
                 {badge > 0 && (
                   <span
